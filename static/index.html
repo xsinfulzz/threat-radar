@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Threat Radar</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070d14;--panel:#0d1722;--line:#1d2f40;--ink:#dbe8f0;--mute:#7f95a6;--safe:#3ddc97;--bad:#ff5d5d;--warn:#ffb84d;--scan:#4cc9f0}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);background:radial-gradient(1100px 560px at 50% -12%,#12304a,var(--bg));font:15px/1.55 'IBM Plex Mono',ui-monospace,Consolas,monospace}
+main{max-width:880px;margin:0 auto;padding:36px 18px 70px}
+h1{font:700 clamp(2.4rem,8vw,4rem)/1 Rajdhani,sans-serif;margin:0;letter-spacing:.01em}
+.sub{color:var(--mute);margin:8px 0 26px}
+#stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+#stage:hover,#stage.over,#stage:focus-visible{border-color:var(--scan);box-shadow:0 0 0 4px #4cc9f022;outline:none}
+#stage.scanning{cursor:progress}
+.radar{width:150px;height:150px;border-radius:50%;margin:0 auto 16px;position:relative;overflow:hidden;border:1px solid var(--line);background:repeating-radial-gradient(circle,transparent 0 24px,var(--line) 25px 26px),var(--bg)}
+.radar::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--scan)}
+.radar::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(#4cc9f000 0 72%,#4cc9f077 100%);opacity:.35;animation:spin 1.8s linear infinite;animation-play-state:paused}
+.scanning .radar::after{opacity:1;animation-play-state:running}
+.scanning .radar{border-color:var(--scan)}
+@keyframes spin{to{transform:rotate(360deg)}}
+#st{font:700 1.5rem Rajdhani,sans-serif}
+#ss{color:var(--mute);font-size:.88rem;word-break:break-all;min-height:1.4em}
+#steps{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--mute)}
+#steps span::before{content:"○ "}
+#steps .run{color:var(--scan)}#steps .run::before{content:"◔ "}
+#steps .done{color:var(--safe)}#steps .done::before{content:"● "}
+#steps .fail{color:var(--bad)}#steps .fail::before{content:"✕ "}
+#hash{margin:12px 0 0;font-size:.74rem;color:var(--mute);word-break:break-all}
+#ask{display:none;margin:16px auto 0;max-width:520px;text-align:left;background:#1a1405;border:1px solid var(--warn);border-radius:10px;padding:14px;cursor:default}
+#ask p{margin:0 0 10px;font-size:.88rem}
+button{font:inherit;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;cursor:pointer;margin-right:8px}
+button.go{background:var(--warn);color:#201500;border-color:var(--warn);font-weight:500}
+button:focus-visible{outline:2px solid var(--scan)}
+#grid{display:none;grid-template-columns:repeat(auto-fill,minmax(14px,1fr));gap:4px;margin-top:22px}
+#grid i{aspect-ratio:1;border-radius:3px;background:var(--line);display:block;transition:background .25s,transform .25s}
+#grid i.p{animation:pulse 1.1s ease-in-out infinite}
+#grid i.safe{background:var(--safe)}#grid i.bad{background:var(--bad);transform:scale(1.25)}#grid i.skip{background:#32424f}
+@keyframes pulse{50%{background:#2d4a63}}
+#res{display:none;margin-top:26px}
+.v{display:flex;gap:22px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;flex-wrap:wrap}
+.ring{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;flex:none;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--line) 0)}
+.ring div{width:104px;height:104px;border-radius:50%;background:var(--panel);display:grid;place-items:center;text-align:center;font:700 1.6rem/1.1 Rajdhani,sans-serif}
+.ring small{display:block;font:400 .7rem 'IBM Plex Mono',monospace;color:var(--mute)}
+.v h2{margin:0;font:700 2rem/1.1 Rajdhani,sans-serif;color:var(--c)}
+.v p{margin:6px 0 0;color:var(--mute);max-width:46ch}
+.tabs{display:flex;gap:8px;margin:20px 0 10px;flex-wrap:wrap}
+.tabs button.on{border-color:var(--scan);color:var(--scan)}
+#list{list-style:none;margin:0;padding:0}
+#list li{display:flex;justify-content:space-between;gap:12px;padding:9px 14px;border:1px solid var(--line);border-bottom:0;background:var(--panel);animation:in .25s both}
+#list li:first-child{border-radius:10px 10px 0 0}#list li:last-child{border-bottom:1px solid var(--line);border-radius:0 0 10px 10px}
+#list li:only-child{border-radius:10px}
+#list b{font-weight:500}#list .t{text-align:right;word-break:break-all}
+#list .bad{color:var(--bad)}#list .safe{color:var(--safe)}#list .skip{color:var(--mute)}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.empty{padding:16px;color:var(--mute);text-align:center}
+.foot{margin-top:30px;color:var(--mute);font-size:.8rem;max-width:70ch}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body><main>
+<h1>Threat Radar</h1>
+<p class="sub">Checks your file against 70+ real antivirus engines through VirusTotal.</p>
+
+<div id="stage" tabindex="0" role="button" aria-label="Choose a file to scan">
+  <div class="radar"></div>
+  <div id="st">Drop a file to scan</div>
+  <div id="ss">or click to choose one (up to 32 MB)</div>
+  <div id="steps"><span id="s1">Fingerprint</span><span id="s2">Ask engines</span><span id="s3">Read results</span></div>
+  <div id="hash"></div>
+  <div id="ask"><p>VirusTotal has never seen this file. Scanning it means uploading it, and VirusTotal shares uploads with security companies. Only upload files that aren't private.</p>
+    <button class="go" id="yes">Upload and scan</button><button id="no">Cancel</button></div>
+  <input id="file" type="file" hidden>
+</div>
+
+<div id="grid" aria-hidden="true"></div>
+
+<section id="res">
+  <div class="v"><div class="ring" id="ring"><div id="rn"></div></div>
+    <div><h2 id="vh"></h2><p id="vp"></p></div></div>
+  <div class="tabs" id="tabs">
+    <button data-f="threat">Threats</button><button data-f="clean">Clean</button><button data-f="all">All engines</button>
+  </div>
+  <ul id="list"></ul>
+</section>
+
+<p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe. Test with the harmless EICAR file from eicar.org.</p>
+</main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const stage=$('#stage'),fi=$('#file');
+let engines=[],filter='threat';
+
+stage.onclick=e=>{if(!stage.classList.contains('scanning')&&!e.target.closest('#ask'))fi.click()};
+stage.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();stage.click()}};
+fi.onchange=()=>{if(fi.files[0])run(fi.files[0]);fi.value=''};
+stage.ondragover=e=>{e.preventDefault();stage.classList.add('over')};
+stage.ondragleave=()=>stage.classList.remove('over');
+stage.ondrop=e=>{e.preventDefault();stage.classList.remove('over');if(!stage.classList.contains('scanning')&&e.dataTransfer.files[0])run(e.dataTransfer.files[0])};
+
+const step=(n,c)=>$('#s'+n).className=c;
+const title=(t,s)=>{$('#st').textContent=t;$('#ss').textContent=s||''};
+function reset(){['1','2','3'].forEach(n=>step(n,''));$('#res').style.display='none';$('#grid').style.display='none';$('#grid').innerHTML='';$('#hash').textContent='';$('#ask').style.display='none'}
+async function sha256(file){const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function api(path,opts){let r;try{r=await fetch(path,opts)}catch{throw new Error('Cannot reach the server. Is app.py running?')}
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Request failed ('+r.status+')');return j}
+const askUpload=()=>new Promise(res=>{const a=$('#ask');a.style.display='block';$('#yes').onclick=()=>{a.style.display='none';res(true)};$('#no').onclick=()=>{a.style.display='none';res(false)}});
+const kind=c=>c==='malicious'||c==='suspicious'?'threat':(c==='harmless'||c==='undetected'?'clean':'skip');
+
+async function run(file){
+  reset();stage.classList.add('scanning');let active=1;
+  try{
+    title('Fingerprinting file…',file.name);step(1,'run');
+    const sha=await sha256(file);$('#hash').textContent='SHA-256 '+sha;step(1,'done');
+    active=2;step(2,'run');title('Asking 70+ engines…','Checking the fingerprint with VirusTotal');
+    $('#grid').style.display='grid';$('#grid').innerHTML='<i class="p"></i>'.repeat(72);
+    let res=await api('/api/lookup/'+sha);
+    if(res.status==='unknown'){
+      if(file.size>32*1024*1024)throw new Error('This file is unknown to VirusTotal and over the 32 MB upload limit.');
+      title('Waiting for your decision','This file has not been seen before.');
+      if(!await askUpload()){step(2,'fail');title('Cancelled','Nothing was uploaded.');return}
+      title('Uploading…',file.name);const fd=new FormData();fd.append('file',file);
+      const up=await api('/api/upload',{method:'POST',body:fd});res=null;
+      for(let i=1;i<=60&&!res;i++){title('Engines are scanning…','Waiting for results ('+i*3+'s)');await sleep(3000);
+        const a=await api('/api/analysis/'+up.analysis_id);if(a.status==='done')res=a}
+      if(!res)throw new Error('Timed out waiting for results. Try again in a minute.');
+    }
+    step(2,'done');active=3;step(3,'run');title('Reading results…','');
+    engines=res.engines;await reveal();step(3,'done');show(res);
+  }catch(e){step(active,'fail');title('Scan failed',e.message)}
+  finally{stage.classList.remove('scanning')}
+}
+
+async function reveal(){
+  const g=$('#grid');g.innerHTML=engines.map(e=>'<i title="'+esc(e.engine)+'"></i>').join('');
+  const tiles=g.children,order=[...engines.keys()];
+  for(const i of order){const k=kind(engines[i].category);tiles[i].className=k==='threat'?'bad':k==='clean'?'safe':'skip';await sleep(14)}
+}
+function show(res){
+  const s=res.stats||{},m=s.malicious||0,u=s.suspicious||0,flagged=m+u;
+  const total=engines.filter(e=>kind(e.category)!=='skip').length;
+  let c='var(--safe)',h='No threats detected',p='None of the engines recognised this file as malicious.';
+  if(!total){c='var(--mute)';h='No results';p='No engine returned a verdict for this file.'}
+  else if(m>=3){c='var(--bad)';h='Malicious';p=m+' engines flagged this file. Don\'t open it.'}
+  else if(flagged>0){c='var(--warn)';h='Possibly unsafe';p='Only '+flagged+' of '+total+' engines flagged it, which is often a false positive. Be cautious if the source is unknown.'}
+  const r=$('#ring');r.style.setProperty('--c',c);r.style.setProperty('--p',total?Math.max(flagged/total*100,flagged?4:100):100);
+  if(!flagged&&total)r.style.setProperty('--p',100);
+  $('#rn').innerHTML=total?flagged+'<small>of '+total+'</small>':'?';
+  $('#vh').textContent=h;$('#vh').parentElement.parentElement.style.setProperty('--c',c);$('#vp').textContent=p;
+  filter=flagged?'threat':'all';$('#res').style.display='block';title(h,p);drawList();
+}
+function drawList(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.f===filter));
+  const rows=engines.filter(e=>filter==='all'||kind(e.category)===filter);
+  $('#list').innerHTML=rows.length?rows.map((e,i)=>{const k=kind(e.category);
+    const t=k==='threat'?e.threat||e.category:k==='clean'?'Clean':'Not scanned';
+    return '<li style="animation-delay:'+Math.min(i*15,400)+'ms"><b>'+esc(e.engine)+'</b><span class="t '+(k==='threat'?'bad':k==='clean'?'safe':'skip')+'">'+esc(t)+'</span></li>'}).join(''):'<li class="empty" style="display:block">Nothing here.</li>';
+}
+$('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList()}};
+</script></body></html>
