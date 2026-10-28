@@ -1,4 +1,4 @@
-"""Threat Radar backend: forwards file fingerprints (and, with consent, files)
+"""ZeroWare backend: forwards file fingerprints (and, with consent, files)
 to VirusTotal, which runs 70+ real antivirus engines."""
 import os
 import requests
@@ -10,7 +10,7 @@ KEY = os.getenv("VT_API_KEY", "").strip()
 VT = "https://www.virustotal.com/api/v3"
 
 app = Flask(__name__, static_folder="static")
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # VirusTotal direct-upload limit
+app.config["MAX_CONTENT_LENGTH"] = 650 * 1024 * 1024  # VirusTotal's maximum file size
 
 
 def vt(method, path, **kw):
@@ -55,7 +55,7 @@ def network_error(e):
 
 @app.errorhandler(413)
 def too_big(e):
-    return jsonify(error="File is over 32 MB, the VirusTotal upload limit."), 413
+    return jsonify(error="File is over 650 MB, the VirusTotal maximum."), 413
 
 
 @app.get("/")
@@ -80,7 +80,18 @@ def upload():
     f = request.files.get("file")
     if not f:
         return jsonify(error="No file received."), 400
-    r = vt("POST", "/files", files={"file": (f.filename, f.stream)})
+    f.stream.seek(0, 2)
+    size = f.stream.tell()
+    f.stream.seek(0)
+    if size > 32 * 1024 * 1024:
+        # Files over 32 MB must go to a special one-time upload URL.
+        u = vt("GET", "/files/upload_url")
+        if u.status_code != 200:
+            return vt_error(u)
+        r = requests.post(u.json()["data"], headers={"x-apikey": KEY},
+                          files={"file": (f.filename, f.stream)}, timeout=1800)
+    else:
+        r = vt("POST", "/files", files={"file": (f.filename, f.stream)})
     if r.status_code != 200:
         return vt_error(r)
     return jsonify(analysis_id=r.json()["data"]["id"])
