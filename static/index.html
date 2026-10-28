@@ -109,7 +109,6 @@ html.intro-on main>*{opacity:0}
 #itag{font:500 clamp(.9rem,2.6vw,1.25rem) 'IBM Plex Mono',monospace;color:var(--ink);letter-spacing:.18em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
 #itag.on{opacity:1;transform:none}
 #iskip{position:absolute;right:16px;bottom:16px;font-size:.8rem;color:var(--mute);background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px}
-#replay{font-size:.8rem}
 </style></head><body><div id="intro" role="dialog" aria-label="ZeroWare intro">
   <div class="iw" id="iw"><svg id="ibug" viewBox="-28 -34 68 68" aria-hidden="true"><g transform="rotate(90)">
         <g class="legs"><line class="l a" x1="-8" y1="-6" x2="-21" y2="-13"/><line class="l b" x1="-9" y1="3" x2="-23" y2="3"/><line class="l a" x1="-8" y1="12" x2="-21" y2="19"/><line class="l b" x1="8" y1="-6" x2="21" y2="-13"/><line class="l a" x1="9" y1="3" x2="23" y2="3"/><line class="l b" x1="8" y1="12" x2="21" y2="19"/></g>
@@ -164,7 +163,6 @@ html.intro-on main>*{opacity:0}
 </section>
 
 <p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe. Test with the harmless EICAR file from eicar.org.</p>
-<p class="foot"><a href="#" id="replay">&#9654; Replay intro</a></p>
 </main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -293,9 +291,7 @@ $('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList
   }
   ov.addEventListener('click',finish);
   addEventListener('keydown',e=>{if(running&&['Escape','Enter',' '].includes(e.key)){e.preventDefault();finish()}});
-  document.getElementById('replay').addEventListener('click',e=>{e.preventDefault();play()});
-  if(matchMedia('(prefers-reduced-motion:reduce)').matches){ov.style.display='none';root.classList.remove('intro-on');root.classList.add('go')}
-  else play();
+  play();
 })();
 </script>
 </body></html>
