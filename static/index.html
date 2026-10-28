@@ -14,12 +14,33 @@ h1{font:700 clamp(2.4rem,8vw,4rem)/1 Rajdhani,sans-serif;margin:0;letter-spacing
 #stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .2s,box-shadow .2s}
 #stage:hover,#stage.over,#stage:focus-visible{border-color:var(--scan);box-shadow:0 0 0 4px #4cc9f022;outline:none}
 #stage.scanning{cursor:progress}
-.radar{width:150px;height:150px;border-radius:50%;margin:0 auto 16px;position:relative;overflow:hidden;border:1px solid var(--line);background:repeating-radial-gradient(circle,transparent 0 24px,var(--line) 25px 26px),var(--bg)}
-.radar::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:var(--scan)}
-.radar::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(#4cc9f000 0 72%,#4cc9f077 100%);opacity:.35;animation:spin 1.8s linear infinite;animation-play-state:paused}
-.scanning .radar::after{opacity:1;animation-play-state:running}
-.scanning .radar{border-color:var(--scan)}
 @keyframes spin{to{transform:rotate(360deg)}}
+.scene{width:min(100%,330px);height:auto;display:block;margin:0 auto 6px;--bugc:#a66bff;overflow:visible}
+.bug{transform:translate(-30px,12px) rotate(30deg)}
+.lens{transform:translate(38px,-4px)}
+.glass{fill:#4cc9f01f;stroke:var(--scan);stroke-width:4}
+.handle{stroke:#9fb3c1;stroke-width:7;stroke-linecap:round}
+.ck{fill:none;stroke:var(--safe);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.legs line{stroke:var(--bugc);stroke-width:2.5;stroke-linecap:round}
+.bugart{transform-box:fill-box;transform-origin:center}
+.scanning .bug{animation:walk 7s ease-in-out infinite}
+.scanning .lens{animation:hunt 7s ease-in-out infinite .5s backwards}
+.scanning .l.a{animation:wig .18s ease-in-out infinite alternate}
+.scanning .l.b{animation:wig .18s ease-in-out infinite alternate-reverse}
+.scanning .glass{stroke:var(--scan);filter:drop-shadow(0 0 6px #4cc9f099)}
+@keyframes walk{0%{transform:translate(-80px,-15px) rotate(59deg)}20%{transform:translate(-30px,-45px) rotate(100deg)}40%{transform:translate(50px,-30px) rotate(146deg)}60%{transform:translate(80px,15px) rotate(247deg)}80%{transform:translate(10px,45px) rotate(304deg)}100%{transform:translate(-80px,-15px) rotate(419deg)}}
+@keyframes hunt{0%{transform:translate(-80px,-15px)}20%{transform:translate(-30px,-45px)}40%{transform:translate(50px,-30px)}60%{transform:translate(80px,15px)}80%{transform:translate(10px,45px)}100%{transform:translate(-80px,-15px)}}
+@keyframes wig{from{transform:translateY(-2.5px)}to{transform:translateY(2.5px)}}
+@keyframes shake{25%{transform:translateX(-3px) scale(1.15)}75%{transform:translateX(3px) scale(1.15)}}
+#stage.clean{border-color:var(--safe);box-shadow:0 0 0 4px #3ddc9726,0 0 44px #3ddc9722}
+#stage.flagged{border-color:var(--bad);box-shadow:0 0 0 4px #ff5d5d26,0 0 44px #ff5d5d22}
+.clean #st{color:var(--safe)}.flagged #st{color:var(--bad)}
+.clean .glass{stroke:var(--safe);fill:#3ddc9722;filter:drop-shadow(0 0 8px #3ddc9799)}
+.clean .bugart{opacity:0;transform:scale(.25);transition:opacity .7s .15s,transform .7s .15s}
+.clean .ck{opacity:1;transition:opacity .4s .6s}
+.flagged{--bugc:var(--bad)}
+.flagged .glass{stroke:var(--bad);fill:#ff5d5d22;filter:drop-shadow(0 0 10px #ff5d5daa)}
+.flagged .bugart{animation:shake .35s 4;filter:drop-shadow(0 0 8px #ff5d5d)}
 #st{font:700 1.5rem Rajdhani,sans-serif}
 #ss{color:var(--mute);font-size:.88rem;word-break:break-all;min-height:1.4em}
 #steps{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.82rem;color:var(--mute)}
@@ -62,7 +83,22 @@ button:focus-visible{outline:2px solid var(--scan)}
 <p class="sub">Checks your file against 70+ real antivirus engines through VirusTotal.</p>
 
 <div id="stage" tabindex="0" role="button" aria-label="Choose a file to scan">
-  <div class="radar"></div>
+  <svg class="scene" viewBox="0 0 300 170" role="img" aria-label="A bug being hunted by a magnifying glass">
+    <g transform="translate(150 85)">
+      <g class="bug" id="bug"><g class="bugart">
+        <g class="legs">
+          <line class="l a" x1="-8" y1="-6" x2="-21" y2="-13"/><line class="l b" x1="-9" y1="3" x2="-23" y2="3"/><line class="l a" x1="-8" y1="12" x2="-21" y2="19"/>
+          <line class="l b" x1="8" y1="-6" x2="21" y2="-13"/><line class="l a" x1="9" y1="3" x2="23" y2="3"/><line class="l b" x1="8" y1="12" x2="21" y2="19"/>
+        </g>
+        <path d="M-3 -20Q-8 -31 -15 -31M3 -20Q8 -31 15 -31" fill="none" stroke="var(--bugc)" stroke-width="2" stroke-linecap="round"/>
+        <ellipse cy="3" rx="11" ry="16" fill="var(--bugc)"/><circle cy="-15" r="7" fill="var(--bugc)"/>
+        <path d="M0 -8V18" stroke="#0007" stroke-width="1.5"/>
+        <circle cx="-5" cy="4" r="2.6" fill="#ff5d5d"/><circle cx="5" cy="10" r="2.6" fill="#ff5d5d"/>
+        <circle cx="-3" cy="-17" r="1.7" fill="#fff"/><circle cx="3" cy="-17" r="1.7" fill="#fff"/>
+      </g></g>
+      <g class="lens" id="lens"><line class="handle" x1="17" y1="17" x2="40" y2="40"/><circle class="glass" r="24"/><path class="ck" d="M-11 0L-3 8L11 -8"/></g>
+    </g>
+  </svg>
   <div id="st">Drop a file to scan</div>
   <div id="ss">or click to choose one (up to 650 MB)</div>
   <div id="steps"><span id="s1">Fingerprint</span><span id="s2">Ask engines</span><span id="s3">Read results</span></div>
@@ -100,7 +136,7 @@ stage.ondrop=e=>{e.preventDefault();stage.classList.remove('over');if(!stage.cla
 
 const step=(n,c)=>$('#s'+n).className=c;
 const title=(t,s)=>{$('#st').textContent=t;$('#ss').textContent=s||''};
-function reset(){['1','2','3'].forEach(n=>step(n,''));$('#res').style.display='none';$('#grid').style.display='none';$('#grid').innerHTML='';$('#hash').textContent='';$('#ask').style.display='none'}
+function reset(){stage.classList.remove('clean','flagged');['bug','lens'].forEach(i=>$('#'+i).removeAttribute('style'));['1','2','3'].forEach(n=>step(n,''));$('#res').style.display='none';$('#grid').style.display='none';$('#grid').innerHTML='';$('#hash').textContent='';$('#ask').style.display='none'}
 async function sha256(file){
   if(file.size<=100*1024*1024){const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
   const h=await hashwasm.createSHA256();h.init();const C=8*1024*1024;  // big files are hashed in chunks to save memory
@@ -141,18 +177,25 @@ async function reveal(){
   const tiles=g.children,order=[...engines.keys()];
   for(const i of order){const k=kind(engines[i].category);tiles[i].className=k==='threat'?'bad':k==='clean'?'safe':'skip';await sleep(14)}
 }
+function settle(){
+  try{const b=$('#bug'),l=$('#lens');
+    const bt=getComputedStyle(b).transform,lc=getComputedStyle(l).transform,m=new DOMMatrixReadOnly(bt);
+    b.style.animation='none';b.style.transform=bt;l.style.animation='none';l.style.transform=lc;l.getBoundingClientRect();
+    l.style.transition='transform .7s ease-out';l.style.transform='translate('+m.e+'px,'+m.f+'px)';
+  }catch(e){}
+}
 function show(res){
   const s=res.stats||{},m=s.malicious||0,u=s.suspicious||0,flagged=m+u;
   const total=engines.filter(e=>kind(e.category)!=='skip').length;
   let c='var(--safe)',h='No threats detected',p='None of the engines recognised this file as malicious.';
   if(!total){c='var(--mute)';h='No results';p='No engine returned a verdict for this file.'}
   else if(m>=3){c='var(--bad)';h='Malicious';p=m+' engines flagged this file. Don\'t open it.'}
-  else if(flagged>0){c='var(--warn)';h='Possibly unsafe';p='Only '+flagged+' of '+total+' engines flagged it, which is often a false positive. Be cautious if the source is unknown.'}
+  else if(flagged>0){c='var(--bad)';h='Flagged';p='Only '+flagged+' of '+total+' engines flagged it, which is often a false positive. Be cautious if the source is unknown.'}
   const r=$('#ring');r.style.setProperty('--c',c);r.style.setProperty('--p',total?Math.max(flagged/total*100,flagged?4:100):100);
   if(!flagged&&total)r.style.setProperty('--p',100);
   $('#rn').innerHTML=total?flagged+'<small>of '+total+'</small>':'?';
   $('#vh').textContent=h;$('#vh').parentElement.parentElement.style.setProperty('--c',c);$('#vp').textContent=p;
-  filter=flagged?'threat':'all';$('#res').style.display='block';title(h,p);drawList();
+  if(total)stage.classList.add(flagged?'flagged':'clean');settle();filter=flagged?'threat':'all';$('#res').style.display='block';title(h,p);drawList();
 }
 function drawList(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.f===filter));
