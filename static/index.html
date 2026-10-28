@@ -150,11 +150,11 @@ h1{background:linear-gradient(100deg,var(--ink) 30%,var(--scan) 47%,var(--safe) 
 
 #docsBtn{position:fixed;top:14px;right:14px;z-index:5;margin:0;padding:8px 16px;border-color:var(--scan);color:var(--scan);background:#0d1722cc;backdrop-filter:blur(6px);transition:background .2s,transform .2s}
 #docsBtn:hover{background:#4cc9f022;transform:translateY(-2px)}
-#docs{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:0;width:min(780px,94vw);max-height:86vh;font:15px/1.6 'IBM Plex Mono',ui-monospace,monospace;overflow:hidden}
-#docs[open]{display:flex;flex-direction:column;animation:dpop .38s cubic-bezier(.2,.9,.3,1.15)}
-#docs::backdrop{background:#02060bcc;backdrop-filter:blur(5px)}
+#docs,#learn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:0;width:min(780px,94vw);max-height:86vh;font:15px/1.6 'IBM Plex Mono',ui-monospace,monospace;overflow:hidden}
+#docs[open],#learn[open]{display:flex;flex-direction:column;animation:dpop .38s cubic-bezier(.2,.9,.3,1.15)}
+#docs::backdrop,#learn::backdrop{background:#02060bcc;backdrop-filter:blur(5px)}
 @keyframes dpop{from{opacity:0;transform:translateY(28px) scale(.95)}}
-body:has(#docs[open]){overflow:hidden}
+body:has(#docs[open]),body:has(#learn[open]){overflow:hidden}
 .dh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
 .dh h2{margin:0;font:700 1.7rem Rajdhani,sans-serif}.dh button{margin:0}
 #dn{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--line)}
@@ -171,6 +171,14 @@ body:has(#docs[open]){overflow:hidden}
 .db th,.db td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top;color:#c3d3dd}
 .db th{color:var(--mute);font-weight:500}
 .g{color:var(--safe)}.r{color:var(--bad)}
+
+#list li{flex-wrap:wrap;align-items:center}#list .t{flex:1}
+.lm{margin:0 0 0 4px;font-size:.74rem;padding:4px 11px;border-color:var(--scan);color:var(--scan);white-space:nowrap;flex:none;transition:background .2s}
+.lm:hover{background:#4cc9f022}
+.chip{background:#0a1219;border:1px solid var(--line);border-radius:6px;padding:1px 9px;margin-right:6px;display:inline-block}
+.sev{font-size:.72rem;padding:2px 10px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.s-h{color:var(--bad)}.s-m{color:var(--warn)}.s-l{color:var(--scan)}.s-u{color:var(--mute)}
+.lnote{border-left:3px solid var(--warn);background:#1a1405;padding:9px 12px;border-radius:0 8px 8px 0;margin-top:18px;color:#e9d9b0}
 </style></head><body><div id="intro" role="dialog" aria-label="ZeroWare intro">
   <div class="iw" id="iw"><svg id="ibug" viewBox="-28 -34 68 68" aria-hidden="true"><g transform="rotate(90)">
         <g class="legs"><line class="l a" x1="-8" y1="-6" x2="-21" y2="-13"/><line class="l b" x1="-9" y1="3" x2="-23" y2="3"/><line class="l a" x1="-8" y1="12" x2="-21" y2="19"/><line class="l b" x1="8" y1="-6" x2="21" y2="-13"/><line class="l a" x1="9" y1="3" x2="23" y2="3"/><line class="l b" x1="8" y1="12" x2="21" y2="19"/></g>
@@ -206,7 +214,8 @@ body:has(#docs[open]){overflow:hidden}
         <tr><td class="g">Green: No threats detected</td><td>No engine flagged the file. This is reassuring but not a guarantee of safety.</td></tr>
         <tr><td class="r">Red: Flagged</td><td>One or two engines flagged it. A single detection is often a false positive, so check the source of the file.</td></tr>
         <tr><td class="r">Red: Malicious</td><td>Three or more engines flagged it. Do not open the file.</td></tr></table>
-      <p>The engine list uses these labels: <code>malicious</code> and <code>suspicious</code> count as threats, <code>harmless</code> and <code>undetected</code> count as clean, and anything else shows as "Not scanned" (for example, an engine that does not support that file type).</p></section>
+      <p>The engine list uses these labels: <code>malicious</code> and <code>suspicious</code> count as threats, <code>harmless</code> and <code>undetected</code> count as clean, and anything else shows as "Not scanned" (for example, an engine that does not support that file type).</p>
+      <p>Next to every flag there is a <code>Learn more</code> button. It explains in plain words why that engine flagged the file and what it could mean.</p></section>
     <section id="d4"><h3>Privacy</h3>
       <ul><li>Files that are already known are checked using just their ID tag. The file itself is never uploaded.</li>
         <li>Unknown files are uploaded only after you click <code>Upload and scan</code>. VirusTotal may share uploaded files with security companies, so never upload private or personal files.</li>
@@ -223,6 +232,7 @@ body:has(#docs[open]){overflow:hidden}
       <p><b>Can I test ZeroWare safely?</b><br>Yes. Download the harmless EICAR test file from eicar.org. It is flagged by design.</p></section>
   </div>
 </dialog>
+<dialog id="learn" aria-labelledby="lt"><div class="dh"><h2 id="lt"></h2><button type="button" data-close aria-label="Close">&#10005;</button></div><div class="db" id="lb"></div></dialog>
 <main>
 <h1>ZeroWare</h1>
 <p class="sub">Checks your file against 70+ real antivirus engines through VirusTotal.</p>
@@ -264,7 +274,7 @@ body:has(#docs[open]){overflow:hidden}
   <ul id="list"></ul>
 </section>
 
-<p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe.</p>
+<p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe. Test with the harmless EICAR file from eicar.org.</p>
 </main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -331,7 +341,7 @@ function settle(){
 }
 function show(res){
   const s=res.stats||{},m=s.malicious||0,u=s.suspicious||0,flagged=m+u;
-  const total=engines.filter(e=>kind(e.category)!=='skip').length;
+  const total=engines.filter(e=>kind(e.category)!=='skip').length;ctx={flagged,total};
   let c='var(--safe)',h='No threats detected',p='None of the engines recognised this file as malicious.';
   if(!total){c='var(--mute)';h='No results';p='No engine returned a verdict for this file.'}
   else if(m>=3){c='var(--bad)';h='Malicious';p=m+' engines flagged this file. Don\'t open it.'}
@@ -346,7 +356,7 @@ function drawList(){
   const rows=engines.filter(e=>filter==='all'||kind(e.category)===filter);
   $('#list').innerHTML=rows.length?rows.map((e,i)=>{const k=kind(e.category);
     const t=k==='threat'?e.threat||e.category:k==='clean'?'Clean':'Not scanned';
-    return '<li style="animation-delay:'+Math.min(i*15,400)+'ms"><b>'+esc(e.engine)+'</b><span class="t '+(k==='threat'?'bad':k==='clean'?'safe':'skip')+'">'+esc(t)+'</span></li>'}).join(''):'<li class="empty" style="display:block">Nothing here.</li>';
+    return '<li style="animation-delay:'+Math.min(i*15,400)+'ms"><b>'+esc(e.engine)+'</b><span class="t '+(k==='threat'?'bad':k==='clean'?'safe':'skip')+'">'+esc(t)+'</span>'+(k==='threat'?'<button type="button" class="lm" data-i="'+engines.indexOf(e)+'">Learn more</button>':'')+'</li>'}).join(''):'<li class="empty" style="display:block">Nothing here.</li>';
 }
 stage.addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect();stage.style.setProperty('--mx',e.clientX-r.left+'px');stage.style.setProperty('--my',e.clientY-r.top+'px')});
 function burst(c,n){for(let i=0;i<n;i++){const p=document.createElement('i'),a=Math.random()*6.283,d=80+Math.random()*130;p.className='pt';p.style.cssText='--c:'+c+';--dx:'+Math.cos(a)*d+'px;--dy:'+Math.sin(a)*d+'px;animation-delay:'+Math.random()*.15+'s';stage.appendChild(p);setTimeout(()=>p.remove(),1400)}}
@@ -393,6 +403,48 @@ $('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList
   $('#docsBtn').onclick=()=>dlg.showModal();
   dlg.addEventListener('click',e=>{if(e.target===dlg||e.target.closest('[data-close]'))dlg.close()});
   dlg.querySelectorAll('#dn button').forEach(b=>b.onclick=()=>dlg.querySelector('#'+b.dataset.t).scrollIntoView({behavior:'smooth',block:'start'}));
+})();
+
+let ctx={flagged:0,total:0};
+(function(){
+  const KB=[
+   [/eicar/,'Test file (EICAR)','Low','A harmless file made by security researchers to test antivirus programs.','You scanned the standard antivirus test file. Every antivirus is designed to flag it.','Nothing. It contains no harmful code.','Nothing to do. It is safe to delete.'],
+   [/ransom|filecoder|cryptolocker|wannacry|lockbit|ryuk|locky/,'Ransomware','High','A program that locks or scrambles your files and then demands money to unlock them.','The file contains code that matches known ransomware.','Could make your photos, documents and other files unreadable and demand payment to restore them.','Do not open it. Delete it. If you already opened it, disconnect from the internet and ask an IT professional for help.'],
+   [/coinminer|miner|cryptojack|xmrig/,'Coin miner','Medium','A program that secretly uses your computer to create cryptocurrency for someone else.','The file contains code used by known crypto-mining programs.','Could slow your computer, make it hot and noisy, and raise your electricity use.','Delete it unless you knowingly installed a mining tool.'],
+   [/stealer|spy|keylog|pws|psw|banker|agenttesla|formbook|redline|lokibot/,'Spyware or password stealer','High','A program that secretly collects private information such as passwords, bank details and what you type.','The file contains code that matches known spyware or password stealers.','Could send your passwords, saved logins and personal data to criminals.','Do not open it. If you already did, change your important passwords from a different, clean device.'],
+   [/backdoor|\brat\b|remcos|njrat|botnet|\bbot\b|webshell|meterpreter|cobalt|beacon|rootkit|bootkit/,'Backdoor or remote control','High','A program that lets someone else secretly control your computer from far away.','The file matches known remote-control tools that attackers use.','Could let an attacker see your screen, take your files or use your computer to attack others.','Do not open it. Delete it and run a full scan with a trusted antivirus.'],
+   [/downloader|dropper|loader|dldr|smokeloader|emotet/,'Downloader or dropper','High','A small program whose job is to sneak in and bring along other, more harmful programs.','The file matches known downloaders, which often look harmless on their own.','Could quietly install viruses or spyware in the background.','Do not open it. Delete it.'],
+   [/worm|\bwrm\b|autorun|virus|virut|sality|expiro|infector/,'Worm or virus','High','A program that copies itself to spread to other files, USB drives and computers.','The file matches known self-spreading code.','Could damage files, slow your computer and spread to other devices you connect.','Do not open it. Delete it and run a full scan.'],
+   [/exploit|cve-|shellcode|xploit/,'Exploit','High','Code built to take advantage of a security hole in software.','The file contains patterns used to attack weaknesses in programs.','Could let an attacker run their own programs on your device without your permission.','Do not open it. Keep your software and system up to date.'],
+   [/phish|fraud|scam|fakeav|spam/,'Phishing or scam','Medium','A file or page built to trick you into handing over private information.','The file looks like a known fake login page or scam.','Could steal your logins or trick you into paying or sharing personal details.','Do not enter any details. Delete it.'],
+   [/macro|o97m|x97m|w97m|xlm|docm|vba|office/,'Risky Office document','Medium','A Word, Excel or PowerPoint file with hidden automatic instructions, called macros.','The document contains macro code that looks like what malware uses.','Could run hidden commands when you click "Enable content", often to install other malware.','Do not enable macros or editing. Delete it unless you fully trust the sender.'],
+   [/\bjs[:\/._-]|javascript|\bvbs|vbscript|powershell|\bps1|\bpsh|wscript|\bbat\b|\bhta\b|script/,'Suspicious script','Medium','A set of written instructions (a script) that can run commands on your computer.','The script uses tricks common in malware, such as hiding what it really does.','Could download or run other programs without you noticing.','Do not run it unless you wrote it or fully trust where it came from.'],
+   [/hacktool|hktl|keygen|crack|patcher|\bhack/,'Hacking or cracking tool','Medium','Software used to break into systems, or to bypass licence checks (cracks and key generators).','Cracks and "keygens" are flagged often because criminals like to hide malware inside them.','May be harmless by itself, but it is a very common way for malware to spread.','Avoid pirated software. Get programs from the official website instead.'],
+   [/adware|\badw|bundler|installcore|opencandy|toolbar/,'Adware','Low','Software that shows unwanted ads or changes your browser settings.','It is usually bundled inside free downloads, and the antivirus recognises it.','Could cause pop-ups, change your home page and slow your browser.','Delete it. Next time, install free software from the official site and untick extras.'],
+   [/\bpup\b|\bpua\b|potentially ?unwanted|potentialrisk|unwanted|riskware|grayware|greyware/,'Potentially unwanted program','Low','A program that is not exactly a virus, but does things most people would not want, like showing ads or installing extras.','It often arrives bundled inside free downloads or installers, and antivirus programs flag how it behaves.','Usually an annoyance rather than serious harm: extra toolbars, ads or a slower computer. Sometimes it is a real tool that is just flagged cautiously.','If you did not mean to get it, delete it. If you trust where it came from, it is likely safe to keep.'],
+   [/packed|obfus|crypter|packer|\bcrypt\b|upx|themida|vmprotect/,'Packed or disguised file','Medium','A file whose real contents are scrambled to hide them from antivirus programs.','Hiding code is a trick malware uses, but some legitimate programs do it too, to protect themselves from copying.','Might conceal harmful code, or might just be a normal protected program.','Be careful. Only keep it if it comes from a source you trust.'],
+   [/reputation|\brep\b|lowrep|unpopular|prevalence/,'Low-reputation file','Low','A file flagged because it is new, rare or unknown, not because it was proven harmful.','Few people have this file, or it is not digitally signed, so the antivirus cannot vouch for it.','Often nothing. Many brand-new or home-made programs get this label.','Check where it came from. If you trust the source, it is probably fine.'],
+   [/trojan|\btrj\b|trj\/|\btroj|artemis|\bagent\b/,'Trojan','High','A program that pretends to be something useful or harmless while doing something harmful in the background.','The antivirus found code or behaviour that matches known trojans.','Could let attackers steal data, install more malware or take control of your device.','Do not open it. Delete it and run a full scan.'],
+   [/^ti!|\bti!/,'Threat-intelligence match','Medium','A label based on the antivirus company\'s own database of known bad files, not a named virus.','The file\'s ID tag matches something the company has seen or been told about before.','Unclear from the label alone, but it may mean the file was seen elsewhere as risky.','Be careful, and check how many other engines agree.'],
+   [/generic|heur|\bgen\b|malware|malicious|\bml\b|score|confidence|possible ?threat|suspicious|detected|predict|behav|unsafe/,'General malware warning','Medium','A broad warning. The antivirus decided the file looks dangerous but did not match it to a specific named virus.','Its automated checks (often artificial intelligence or pattern matching) saw traits that malware commonly has.','Unclear. It could be real malware, or a harmless file that happens to look suspicious.','Treat it with caution. Check how many other engines agree and where the file came from.']
+  ];
+  const DEF=[0,'Unrecognised label','Unclear','This antivirus used its own label, and ZeroWare does not have a plain-English description for it yet.','The engine saw something it considers risky.','Unclear from the label alone.','Look at how many engines flagged the file, and only trust it if it comes from a source you know.'];
+  const PL=[[/win64|w64/,'Windows, 64-bit'],[/win32|w32/,'Windows, 32-bit'],[/msil|\.net/,'Windows .NET program'],[/linux|\belf\b/,'Linux'],[/android|apk/,'Android'],[/osx|macos|\bmac\b/,'macOS'],[/\bzip\b/,'Found inside a ZIP archive'],[/\bpdf\b/,'PDF document'],[/o97m|x97m|w97m|office|docm/,'Office document'],[/\bjs\b|javascript/,'JavaScript'],[/vbs/,'VBScript'],[/powershell|\bps1\b/,'PowerShell script']];
+  const dlg=$('#learn');
+  function explain(e){
+    const n=String(e.threat||e.category||'Detected'),low=n.toLowerCase(),k=KB.find(x=>x[0].test(low))||DEF,pl=PL.filter(p=>p[0].test(low)).map(p=>p[1]);
+    const f=ctx.flagged,t=ctx.total,sv={High:'s-h',Medium:'s-m',Low:'s-l'}[k[2]]||'s-u';
+    const note=f<=2?'Only '+f+' of '+t+' engines flagged this file, so it could be a false alarm.':f>=10?f+' of '+t+' engines flagged this file. When many engines agree, the warning is more likely to be real.':f+' of '+t+' engines flagged this file.';
+    $('#lt').textContent=k[1];
+    $('#lb').innerHTML='<p style="margin-top:14px"><span class="chip">'+esc(e.engine)+'</span><code>'+esc(n)+'</code> <span class="sev '+sv+'">'+(k[2]==='Unclear'?'Risk unclear':k[2]+' risk')+'</span></p>'
+     +'<h3>What it means</h3><p>'+k[3]+'</p><h3>Why it was flagged</h3><p>'+k[4]+'</p><h3>What it could do</h3><p>'+k[5]+'</p>'
+     +'<h3>What you should do</h3><p>'+k[6]+'</p>'+(pl.length?'<h3>Reading the name</h3><p>'+pl.map(esc).join(' &middot; ')+'</p>':'')
+     +'<p class="lnote">'+note+' Each antivirus names threats in its own way, and a single flag is not proof on its own.</p>';
+    dlg.showModal();$('#lb').scrollTop=0;
+  }
+  $('#list').addEventListener('click',e=>{const b=e.target.closest('.lm');if(b)explain(engines[+b.dataset.i])});
+  dlg.addEventListener('click',e=>{if(e.target===dlg||e.target.closest('[data-close]'))dlg.close()});
+  window.__kb=explain;
 })();
 </script>
 <script>
