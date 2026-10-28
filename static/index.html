@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Threat Radar</title>
+<title>ZeroWare</title>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/sha256.umd.min.js"></script>
 <style>
 :root{--bg:#070d14;--panel:#0d1722;--line:#1d2f40;--ink:#dbe8f0;--mute:#7f95a6;--safe:#3ddc97;--bad:#ff5d5d;--warn:#ffb84d;--scan:#4cc9f0}
 *{box-sizing:border-box}
@@ -57,13 +58,13 @@ button:focus-visible{outline:2px solid var(--scan)}
 .foot{margin-top:30px;color:var(--mute);font-size:.8rem;max-width:70ch}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></head><body><main>
-<h1>Threat Radar</h1>
+<h1>ZeroWare</h1>
 <p class="sub">Checks your file against 70+ real antivirus engines through VirusTotal.</p>
 
 <div id="stage" tabindex="0" role="button" aria-label="Choose a file to scan">
   <div class="radar"></div>
   <div id="st">Drop a file to scan</div>
-  <div id="ss">or click to choose one (up to 32 MB)</div>
+  <div id="ss">or click to choose one (up to 650 MB)</div>
   <div id="steps"><span id="s1">Fingerprint</span><span id="s2">Ask engines</span><span id="s3">Read results</span></div>
   <div id="hash"></div>
   <div id="ask"><p>VirusTotal has never seen this file. Scanning it means uploading it, and VirusTotal shares uploads with security companies. Only upload files that aren't private.</p>
@@ -100,7 +101,12 @@ stage.ondrop=e=>{e.preventDefault();stage.classList.remove('over');if(!stage.cla
 const step=(n,c)=>$('#s'+n).className=c;
 const title=(t,s)=>{$('#st').textContent=t;$('#ss').textContent=s||''};
 function reset(){['1','2','3'].forEach(n=>step(n,''));$('#res').style.display='none';$('#grid').style.display='none';$('#grid').innerHTML='';$('#hash').textContent='';$('#ask').style.display='none'}
-async function sha256(file){const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function sha256(file){
+  if(file.size<=100*1024*1024){const h=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  const h=await hashwasm.createSHA256();h.init();const C=8*1024*1024;  // big files are hashed in chunks to save memory
+  for(let o=0;o<file.size;o+=C){h.update(new Uint8Array(await file.slice(o,o+C).arrayBuffer()));title('Fingerprinting file…',file.name+' ('+Math.round(o/file.size*100)+'%)')}
+  return h.digest();
+}
 async function api(path,opts){let r;try{r=await fetch(path,opts)}catch{throw new Error('Cannot reach the server. Is app.py running?')}
   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Request failed ('+r.status+')');return j}
 const askUpload=()=>new Promise(res=>{const a=$('#ask');a.style.display='block';$('#yes').onclick=()=>{a.style.display='none';res(true)};$('#no').onclick=()=>{a.style.display='none';res(false)}});
@@ -115,7 +121,7 @@ async function run(file){
     $('#grid').style.display='grid';$('#grid').innerHTML='<i class="p"></i>'.repeat(72);
     let res=await api('/api/lookup/'+sha);
     if(res.status==='unknown'){
-      if(file.size>32*1024*1024)throw new Error('This file is unknown to VirusTotal and over the 32 MB upload limit.');
+      if(file.size>650*1024*1024)throw new Error('This file is unknown to VirusTotal and over the 650 MB VirusTotal limit.');
       title('Waiting for your decision','This file has not been seen before.');
       if(!await askUpload()){step(2,'fail');title('Cancelled','Nothing was uploaded.');return}
       title('Uploading…',file.name);const fd=new FormData();fd.append('file',file);
