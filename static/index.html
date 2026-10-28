@@ -109,6 +109,68 @@ html.intro-on main>*{opacity:0}
 #itag{font:500 clamp(.9rem,2.6vw,1.25rem) 'IBM Plex Mono',monospace;color:var(--ink);letter-spacing:.18em;text-transform:uppercase;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
 #itag.on{opacity:1;transform:none}
 #iskip{position:absolute;right:16px;bottom:16px;font-size:.8rem;color:var(--mute);background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px}
+
+@property --p{syntax:'<number>';inherits:false;initial-value:0}
+.ring{transition:--p 1.4s cubic-bezier(.2,.8,.2,1)}
+body::before{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(40% 40% at 20% 30%,#4cc9f022,transparent),radial-gradient(35% 35% at 80% 18%,#a66bff1c,transparent),radial-gradient(40% 40% at 60% 88%,#3ddc9716,transparent);animation:drift 22s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate(4%,3%) rotate(6deg) scale(1.08)}}
+h1{background:linear-gradient(100deg,var(--ink) 30%,var(--scan) 47%,var(--safe) 53%,var(--ink) 70%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{from{background-position:100% 0}to{background-position:-100% 0}}
+#stage{position:relative;overflow:hidden;background-image:radial-gradient(280px circle at var(--mx,50%) var(--my,0%),#4cc9f016,transparent 70%);transition:border-color .2s,box-shadow .2s,transform .3s}
+#stage:hover:not(.scanning){transform:translateY(-3px)}
+#stage.over{transform:scale(1.015)}
+#stage.flagged{animation:jolt .5s}
+@keyframes jolt{20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+#stage:not(.scanning):not(.clean):not(.flagged) .bugart{animation:none}
+#stage:not(.scanning):not(.clean):not(.flagged) .lens{animation:none}
+@keyframes breathe{50%{transform:scale(1.07)}}
+@keyframes sway{0%,100%{transform:translate(38px,-4px) rotate(0)}50%{transform:translate(30px,-12px) rotate(-8deg)}}
+.pt{position:absolute;left:50%;top:38%;width:7px;height:7px;border-radius:50%;background:var(--c);pointer-events:none;animation:fly 1.1s ease-out forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+#intro::after{content:"";position:absolute;left:0;right:0;height:140px;top:-140px;pointer-events:none;background:linear-gradient(transparent,#4cc9f01f,transparent);animation:sweep 2.2s linear infinite}
+@keyframes sweep{to{top:100%}}
+#ibar{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffffff14}
+#ibar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--scan),var(--safe));box-shadow:0 0 14px var(--scan)}
+#intro.inf .iw{animation:jit .12s steps(2) infinite}
+@keyframes jit{50%{transform:translate(2px,-1px)}}
+#intro.shake .iw{animation:jolt .5s}
+#itag{letter-spacing:.42em;transition:opacity .6s,transform .6s,letter-spacing 1s}
+#itag.on{letter-spacing:.18em}
+
+.bug,.lens{animation:none!important}
+.scene .l{animation-duration:var(--leg,.2s)!important}
+.scene.still .l{animation-play-state:paused!important}
+.bugart{transition:opacity .15s}
+.scene.frozen .bugart{opacity:.5}
+.scene.dash .bugart{filter:drop-shadow(0 0 7px var(--bugc))}
+.scene .bugart>path:first-of-type{transform-box:fill-box;transform-origin:50% 100%;animation:twitch 1.1s ease-in-out infinite}
+@keyframes twitch{0%,100%{transform:rotate(0)}20%{transform:rotate(-8deg)}40%{transform:rotate(6deg)}60%{transform:rotate(-3deg)}}
+.pup{fill:#14212b}.xx{display:none;fill:none;stroke:#fff;stroke-width:1.3;stroke-linecap:round}
+.flagged .xx{display:block}.flagged .pup{display:none}
+
+#docsBtn{position:fixed;top:14px;right:14px;z-index:5;margin:0;padding:8px 16px;border-color:var(--scan);color:var(--scan);background:#0d1722cc;backdrop-filter:blur(6px);transition:background .2s,transform .2s}
+#docsBtn:hover{background:#4cc9f022;transform:translateY(-2px)}
+#docs{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:0;width:min(780px,94vw);max-height:86vh;font:15px/1.6 'IBM Plex Mono',ui-monospace,monospace;overflow:hidden}
+#docs[open]{display:flex;flex-direction:column;animation:dpop .38s cubic-bezier(.2,.9,.3,1.15)}
+#docs::backdrop{background:#02060bcc;backdrop-filter:blur(5px)}
+@keyframes dpop{from{opacity:0;transform:translateY(28px) scale(.95)}}
+body:has(#docs[open]){overflow:hidden}
+.dh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font:700 1.7rem Rajdhani,sans-serif}.dh button{margin:0}
+#dn{display:flex;gap:6px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--line)}
+#dn button{margin:0;font-size:.78rem;padding:4px 11px}
+.db{overflow:auto;padding:4px 20px 24px;scroll-behavior:smooth}
+.db h3{font:700 1.35rem Rajdhani,sans-serif;color:var(--scan);margin:24px 0 6px}
+.db p,.db li{color:#c3d3dd;font-size:.9rem}
+.db code{background:#0a1219;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--safe);font-size:.82rem}
+.flow{list-style:none;padding:0;margin:14px 0 22px;display:grid;gap:22px}
+.flow li{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:#0a1219;position:relative}
+.flow li b{display:block;color:var(--scan);font-weight:500}
+.flow li:not(:last-child)::after{content:"\2193";position:absolute;left:50%;bottom:-21px;color:var(--mute)}
+.db table{width:100%;border-collapse:collapse;font-size:.83rem;margin:8px 0}
+.db th,.db td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top;color:#c3d3dd}
+.db th{color:var(--mute);font-weight:500}
+.g{color:var(--safe)}.r{color:var(--bad)}
 </style></head><body><div id="intro" role="dialog" aria-label="ZeroWare intro">
   <div class="iw" id="iw"><svg id="ibug" viewBox="-28 -34 68 68" aria-hidden="true"><g transform="rotate(90)">
         <g class="legs"><line class="l a" x1="-8" y1="-6" x2="-21" y2="-13"/><line class="l b" x1="-9" y1="3" x2="-23" y2="3"/><line class="l a" x1="-8" y1="12" x2="-21" y2="19"/><line class="l b" x1="8" y1="-6" x2="21" y2="-13"/><line class="l a" x1="9" y1="3" x2="23" y2="3"/><line class="l b" x1="8" y1="12" x2="21" y2="19"/></g>
@@ -119,11 +181,51 @@ html.intro-on main>*{opacity:0}
     <i id="iring"></i></div>
   <div id="istat" aria-live="polite"></div>
   <div id="itag">Zero malware. Zero doubt.</div>
+  <div id="ibar"><i></i></div>
   <button id="iskip" type="button">Skip ›</button>
 </div>
+<button id="docsBtn" type="button">Documentation</button>
+<dialog id="docs" aria-labelledby="dt">
+  <div class="dh"><h2 id="dt">ZeroWare Documentation</h2><button type="button" data-close aria-label="Close documentation">&#10005;</button></div>
+  <nav id="dn" aria-label="Documentation sections"><button data-t="d1">Overview</button><button data-t="d2">How it works</button><button data-t="d3">Results</button><button data-t="d4">Privacy</button><button data-t="d6">Limits</button><button data-t="d7">FAQ</button></nav>
+  <div class="db">
+    <section id="d1"><h3>Overview</h3>
+      <p>ZeroWare is a web-based file scanner. Drop in a file and ZeroWare checks it against more than 70 antivirus engines through the VirusTotal API, then shows a clear green or red verdict with a per-engine breakdown.</p>
+      <p>ZeroWare is a front end and relay for VirusTotal. It does not run its own antivirus engine, and it is not affiliated with VirusTotal.</p></section>
+    <section id="d2"><h3>How it works</h3>
+      <p>Every scan follows the same four steps:</p>
+      <ol class="flow">
+        <li><b>1. You choose a file</b>ZeroWare gives your file a unique ID tag, a bit like a name tag that identifies it (this is the "fingerprint" you see on screen). This happens on your own device, so your file isn't sent anywhere yet.</li>
+        <li><b>2. ZeroWare server</b>Receives the ID tag and sends the scan request to the VirusTotal API using a private API key stored on the server.</li>
+        <li><b>3. VirusTotal API</b>More than 70 antivirus engines review the file and each returns its own verdict.</li>
+        <li><b>4. Results back to ZeroWare</b>The server tidies VirusTotal's response and sends it to your page, which draws the verdict, engine grid and threat list.</li>
+      </ol>
+      <p>If VirusTotal has never seen the file, ZeroWare asks your permission before uploading it, then waits for the engines to finish and shows the results.</p></section>
+    <section id="d3"><h3>Reading the results</h3>
+      <table><tr><th>Result</th><th>Meaning</th></tr>
+        <tr><td class="g">Green: No threats detected</td><td>No engine flagged the file. This is reassuring but not a guarantee of safety.</td></tr>
+        <tr><td class="r">Red: Flagged</td><td>One or two engines flagged it. A single detection is often a false positive, so check the source of the file.</td></tr>
+        <tr><td class="r">Red: Malicious</td><td>Three or more engines flagged it. Do not open the file.</td></tr></table>
+      <p>The engine list uses these labels: <code>malicious</code> and <code>suspicious</code> count as threats, <code>harmless</code> and <code>undetected</code> count as clean, and anything else shows as "Not scanned" (for example, an engine that does not support that file type).</p></section>
+    <section id="d4"><h3>Privacy</h3>
+      <ul><li>Files that are already known are checked using just their ID tag. The file itself is never uploaded.</li>
+        <li>Unknown files are uploaded only after you click <code>Upload and scan</code>. VirusTotal may share uploaded files with security companies, so never upload private or personal files.</li>
+        <li>The VirusTotal API key stays on the ZeroWare server and is never sent to your browser.</li>
+        <li>ZeroWare does not keep your files or scan history.</li></ul></section>
+    <section id="d6"><h3>Limits</h3>
+      <ul><li>Maximum file size is 650 MB. Files over 32 MB use VirusTotal's large-file upload and can take several minutes.</li>
+        <li>A free VirusTotal API key is rate limited (about 4 requests per minute), so many users at once may see a "rate limit" message. Wait a minute and try again.</li>
+        <li>ZeroWare reports what the engines say. It cannot remove viruses, and a clean result does not prove a file is safe.</li>
+        <li>Brand-new malware may not be recognised yet.</li></ul></section>
+    <section id="d7"><h3>FAQ</h3>
+      <p><b>Why did only one engine flag my file?</b><br>With 70+ engines, a lone detection is usually a false positive, especially on small tools, games or custom software.</p>
+      <p><b>What does "not scanned" mean?</b><br>That engine did not return a verdict, often because it does not support the file type or timed out.</p>
+      <p><b>Can I test ZeroWare safely?</b><br>Yes. Download the harmless EICAR test file from eicar.org. It is flagged by design.</p></section>
+  </div>
+</dialog>
 <main>
 <h1>ZeroWare</h1>
-<p class="sub">Checks your file against 70+ real antivirus engines through ZeroWare.</p>
+<p class="sub">Checks your file against 70+ real antivirus engines through VirusTotal.</p>
 
 <div id="stage" tabindex="0" role="button" aria-label="Choose a file to scan">
   <svg class="scene" viewBox="0 0 300 170" role="img" aria-label="A bug being hunted by a magnifying glass">
@@ -137,7 +239,7 @@ html.intro-on main>*{opacity:0}
         <ellipse cy="3" rx="11" ry="16" fill="var(--bugc)"/><circle cy="-15" r="7" fill="var(--bugc)"/>
         <path d="M0 -8V18" stroke="#0007" stroke-width="1.5"/>
         <circle cx="-5" cy="4" r="2.6" fill="#ff5d5d"/><circle cx="5" cy="10" r="2.6" fill="#ff5d5d"/>
-        <circle cx="-3" cy="-17" r="1.7" fill="#fff"/><circle cx="3" cy="-17" r="1.7" fill="#fff"/>
+        <circle cx="-3" cy="-17" r="1.7" fill="#fff"/><circle cx="3" cy="-17" r="1.7" fill="#fff"/><circle class="pup" id="pL" cx="-3" cy="-17" r=".9"/><circle class="pup" id="pR" cx="3" cy="-17" r=".9"/><path class="xx" d="M-5 -19l4 4m0-4l-4 4M1 -19l4 4m0-4l-4 4"/>
       </g></g>
       <g class="lens" id="lens"><line class="handle" x1="17" y1="17" x2="40" y2="40"/><circle class="glass" r="24"/><path class="ck" d="M-11 0L-3 8L11 -8"/></g>
     </g>
@@ -162,7 +264,7 @@ html.intro-on main>*{opacity:0}
   <ul id="list"></ul>
 </section>
 
-<p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe.</p>
+<p class="foot">Detections from only 1 or 2 engines are often false positives. A clean result means no engine recognised a threat; it can't prove a file is safe. Test with the harmless EICAR file from eicar.org.</p>
 </main>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -234,11 +336,10 @@ function show(res){
   if(!total){c='var(--mute)';h='No results';p='No engine returned a verdict for this file.'}
   else if(m>=3){c='var(--bad)';h='Malicious';p=m+' engines flagged this file. Don\'t open it.'}
   else if(flagged>0){c='var(--bad)';h='Flagged';p='Only '+flagged+' of '+total+' engines flagged it, which is often a false positive. Be cautious if the source is unknown.'}
-  const r=$('#ring');r.style.setProperty('--c',c);r.style.setProperty('--p',total?Math.max(flagged/total*100,flagged?4:100):100);
-  if(!flagged&&total)r.style.setProperty('--p',100);
-  $('#rn').innerHTML=total?flagged+'<small>of '+total+'</small>':'?';
+  const r=$('#ring');r.style.setProperty('--c',c);r.style.setProperty('--p',0);const P=total?(flagged?Math.max(flagged/total*100,4):100):100;setTimeout(()=>r.style.setProperty('--p',P),120);
+  $('#rn').innerHTML=total?'<span id="cn">0</span><small>of '+total+'</small>':'?';if(total&&flagged){const cn=$('#cn');let k=0;const iv=setInterval(()=>{cn.textContent=++k;if(k>=flagged)clearInterval(iv)},Math.max(40,900/flagged))}
   $('#vh').textContent=h;$('#vh').parentElement.parentElement.style.setProperty('--c',c);$('#vp').textContent=p;
-  if(total)stage.classList.add(flagged?'flagged':'clean');settle();filter=flagged?'threat':'all';$('#res').style.display='block';title(h,p);drawList();
+  if(total)stage.classList.add(flagged?'flagged':'clean');settle();if(total)burst(flagged?'var(--bad)':'var(--safe)',flagged?18:34);filter=flagged?'threat':'all';$('#res').style.display='block';title(h,p);drawList();
 }
 function drawList(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.f===filter));
@@ -247,14 +348,59 @@ function drawList(){
     const t=k==='threat'?e.threat||e.category:k==='clean'?'Clean':'Not scanned';
     return '<li style="animation-delay:'+Math.min(i*15,400)+'ms"><b>'+esc(e.engine)+'</b><span class="t '+(k==='threat'?'bad':k==='clean'?'safe':'skip')+'">'+esc(t)+'</span></li>'}).join(''):'<li class="empty" style="display:block">Nothing here.</li>';
 }
+stage.addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect();stage.style.setProperty('--mx',e.clientX-r.left+'px');stage.style.setProperty('--my',e.clientY-r.top+'px')});
+function burst(c,n){for(let i=0;i<n;i++){const p=document.createElement('i'),a=Math.random()*6.283,d=80+Math.random()*130;p.className='pt';p.style.cssText='--c:'+c+';--dx:'+Math.cos(a)*d+'px;--dy:'+Math.sin(a)*d+'px;animation-delay:'+Math.random()*.15+'s';stage.appendChild(p);setTimeout(()=>p.remove(),1400)}}
 $('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList()}};
+
+(function(){
+  const bug=$('#bug'),lens=$('#lens'),sc=document.querySelector('.scene'),pL=$('#pL'),pR=$('#pR');
+  const B={x:-40,y:10,h:30,vx:0,vy:0},L={x:60,y:-8},rnd=(a,b)=>a+Math.random()*(b-a),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  let tx=0,ty=0,nf=0,fr=0,dash=0,last=performance.now();
+  const pick=()=>{tx=rnd(-90,90);ty=rnd(-48,44)};pick();
+  function tick(now){
+    requestAnimationFrame(tick);
+    const dt=Math.min((now-last)/1000,.05);last=now;
+    if(stage.classList.contains('clean')||stage.classList.contains('flagged'))return;
+    const scan=stage.classList.contains('scanning');
+    // the lens hunts while scanning; otherwise it just loiters on the right
+    if(scan){const k=1-Math.exp(-dt*1.7);L.x+=(B.x-L.x)*k;L.y+=(B.y-L.y)*k}
+    else{const k=1-Math.exp(-dt*2);L.x+=(62+Math.sin(now/900)*6-L.x)*k;L.y+=(-8+Math.cos(now/1100)*5-L.y)*k}
+    let dx=B.x-L.x,dy=B.y-L.y,d=Math.hypot(dx,dy)||1;const near=scan?46:40;
+    nf-=dt;
+    if(d<near&&dash<=0){fr=0;dash=.55;tx=cl(B.x+dx/d*120,-92,92);ty=cl(B.y+dy/d*90,-50,46);if(Math.hypot(tx-B.x,ty-B.y)<40){tx=cl(-B.x+rnd(-30,30),-92,92);ty=cl(-B.y+rnd(-20,20),-50,46)}}   // lens too close: bolt away
+    else if(fr<=0&&dash<=0&&nf<=0){nf=rnd(.9,1.8);if(Math.random()<(scan?.3:.45))fr=rnd(.5,.9);else pick()} // freeze, "playing dead"
+    if(fr>0)fr-=dt;
+    let sp=scan?72:24;if(dash>0){dash-=dt;sp=210}
+    let mv=0;
+    if(fr<=0){const ex=tx-B.x,ey=ty-B.y,ed=Math.hypot(ex,ey);
+      if(ed>3){B.vx=ex/ed*sp;B.vy=ey/ed*sp;B.x=cl(B.x+B.vx*dt,-95,95);B.y=cl(B.y+B.vy*dt,-52,48);mv=sp;
+        const th=Math.atan2(B.vx,-B.vy)*57.296,df=((th-B.h+540)%360)-180;B.h+=df*(1-Math.exp(-dt*(dash>0?20:8)))}
+      else{dash=0}}
+    const sway=mv?0:Math.sin(now/450)*8;   // looks around when still
+    bug.style.transform='translate('+B.x+'px,'+B.y+'px) rotate('+(B.h+sway)+'deg)';
+    lens.style.transform='translate('+L.x+'px,'+L.y+'px)';
+    sc.style.setProperty('--leg',Math.max(.07,.32-mv/700)+'s');
+    sc.classList.toggle('still',!mv);sc.classList.toggle('frozen',fr>0);sc.classList.toggle('dash',dash>0);
+    // pupils follow the lens
+    const a=-(B.h+sway)*Math.PI/180,ux=-dx/d,uy=-dy/d,px=(ux*Math.cos(a)-uy*Math.sin(a))*.8,py=(ux*Math.sin(a)+uy*Math.cos(a))*.8;
+    const t='translate('+px+' '+py+')';pL.setAttribute('transform',t);pR.setAttribute('transform',t);
+  }
+  requestAnimationFrame(tick);
+})();
+
+(function(){
+  const dlg=$('#docs');
+  $('#docsBtn').onclick=()=>dlg.showModal();
+  dlg.addEventListener('click',e=>{if(e.target===dlg||e.target.closest('[data-close]'))dlg.close()});
+  dlg.querySelectorAll('#dn button').forEach(b=>b.onclick=()=>dlg.querySelector('#'+b.dataset.t).scrollIntoView({behavior:'smooth',block:'start'}));
+})();
 </script>
 <script>
 (function(){
   const root=document.documentElement,ov=document.getElementById('intro');
   const WORD='ZEROWARE',G='!<>-_\\/[]{}=+*^?#01',iw=document.getElementById('iw');
   const bug=document.getElementById('ibug'),lens=document.getElementById('ilens'),ring=document.getElementById('iring');
-  const stat=document.getElementById('istat'),tag=document.getElementById('itag');
+  const stat=document.getElementById('istat'),tag=document.getElementById('itag'),bar=document.querySelector('#ibar i');
   const spans=[...WORD].map(c=>{const s=document.createElement('span');s.textContent=c;iw.insertBefore(s,bug);return s});
   const ease=x=>x<=0?0:x>=1?1:(x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2);
   let raf=0,running=false,done=false;
@@ -266,7 +412,7 @@ $('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList
   function play(){
     done=false;running=true;ov.style.display='grid';ov.classList.remove('out');
     root.classList.add('intro-on');root.classList.remove('go');
-    bug.classList.remove('caught');lens.classList.remove('done');ring.classList.remove('boom');tag.classList.remove('on');
+    ov.classList.remove('inf','shake');bug.classList.remove('caught');lens.classList.remove('done');ring.classList.remove('boom');tag.classList.remove('on');
     stat.textContent='> scanning…';stat.className='';
     const st=spans.map(()=>'');spans.forEach((s,i)=>{s.className='';s.textContent=WORD[i]});
     const t0=performance.now();let n=0,inf=false,caught=false;
@@ -274,16 +420,16 @@ $('#tabs').onclick=e=>{if(e.target.dataset.f){filter=e.target.dataset.f;drawList
       if(!running)return;
       const t=(now-t0)/1000;n++;
       const bx=-.08+1.16*ease((t-.2)/1.6),lx=-.2+1.28*ease((t-.6)/1.6);
-      bug.style.left=bx*100+'%';lens.style.left=lx*100+'%';
+      bar.style.width=Math.min(t/3.5,1)*100+'%';bug.style.left=bx*100+'%';lens.style.left=lx*100+'%';
       spans.forEach((s,i)=>{
         const x=(i+.5)/WORD.length,k=lx>x+.02?'ok':bx>x?'bad':'idle';
         if(k==='bad'&&n%3===0)s.textContent=G[Math.random()*G.length|0];
         if(k!==st[i]){st[i]=k;s.className=k==='idle'?'':k;if(k!=='bad')s.textContent=WORD[i];
           if(k==='ok'){s.classList.add('flash');setTimeout(()=>s.classList.remove('flash'),380)}}
       });
-      if(!inf&&t>.5){inf=true;stat.textContent='> infection detected';}
+      if(!inf&&t>.5){inf=true;ov.classList.add('inf');stat.textContent='> infection detected';}
       if(!caught&&t>2.25){caught=true;bug.classList.add('caught');ring.style.left=bx*100+'%';ring.classList.add('boom');
-        lens.classList.add('done');stat.textContent='> threat neutralised';stat.className='good'}
+        ov.classList.remove('inf');ov.classList.add('shake');lens.classList.add('done');stat.textContent='> threat neutralised';stat.className='good'}
       if(t>2.4)tag.classList.add('on');
       if(t>3.5){finish();return}
       raf=requestAnimationFrame(frame);
