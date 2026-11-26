@@ -13,6 +13,10 @@ const fileInput = byId("file");
 const dropzone = byId("dropzone");
 const browse = byId("browse");
 const retry = byId("choose-again");
+const urlForm = byId("url-form");
+const urlInput = byId("url-input");
+const consent = byId("url-consent");
+const urlSubmit = byId("url-submit");
 const uploadDialog = byId("upload-dialog");
 const steps = [...byId("steps").children];
 const progress = byId("progress");
@@ -24,20 +28,47 @@ for (const id of ["scan-placeholder", "results-placeholder"]) {
 }
 let busy = false;
 let currentPage;
+let currentRoute;
+let scanKind = "file";
+let progressKind;
+const reports = {};
 let report;
-let filter = "all";
 let hashLibrary;
 
 function renderPage({ focus = false } = {}) {
   const requested = window.location.hash.slice(1);
-  const page = Object.hasOwn(pages, requested) ? requested : "scan";
-  if (page === currentPage) return;
+  const isUrl = requested === "url" || requested === "url-results";
+  const route = isUrl || Object.hasOwn(pages, requested) ? requested : "scan";
+  if (route === currentRoute) return;
+  currentRoute = route;
+  const page = isUrl ? (route === "url" ? "scan" : "results") : route;
   currentPage = page;
+  if (page !== "docs") scanKind = isUrl ? "url" : "file";
   for (const key of Object.keys(pages)) byId(key).hidden = key !== page;
   for (const link of document.querySelectorAll(".nav [data-page]")) {
     if (link.dataset.page === page) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   }
+  for (const link of document.querySelectorAll(".mode-switch [data-mode]")) {
+    if (link.dataset.mode === scanKind) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  for (const link of document.querySelectorAll(".nav [data-page], #results [data-page]")) {
+    if (link.dataset.page === "scan") link.href = scanKind === "url" ? "#url" : "#scan";
+    if (link.dataset.page === "results") link.href = scanKind === "url" ? "#url-results" : "#results";
+  }
+  byId("scan-heading").textContent = scanKind === "url" ? "Scan URLs" : "Scan files";
+  byId("scan-description").textContent = scanKind === "url"
+    ? "Check a website address with VirusTotal’s web reputation engines."
+    : "Check a file against antivirus engines through VirusTotal.";
+  byId("intake-heading").textContent = scanKind === "url" ? "URL scanner" : "File scanner";
+  byId("scan-badge").textContent = scanKind === "url" ? "VirusTotal" : "SHA-256";
+  byId("results-description").textContent = "Review the latest " + (scanKind === "url" ? "URL" : "file") + " report from this session.";
+  byId("results-empty").querySelector("h2").textContent = scanKind === "url" ? "No URL results yet" : "No scan results yet";
+  byId("results-empty").querySelector("p").textContent = scanKind === "url"
+    ? "Check a website address in Scan to see its report here." : "Choose a file in Scan to see its report here.";
+  renderReport();
+  syncPanels();
   byId("path-label").textContent = pages[page];
   if (focus) byId(page + "-heading").focus();
 }
@@ -80,11 +111,10 @@ motionSelect.addEventListener("change", () => {
 function setProgress(title, detail, stage, state = "working") {
   const active = state === "working" || state === "finishing";
   const complete = state === "complete";
-  dropzone.hidden = true;
-  progress.hidden = false;
   progress.dataset.state = state;
-  retry.hidden = active || complete;
-  byId("scan-count").textContent = (complete ? 1 : 0) + " of 1 file scanned";
+  retry.hidden = active || complete || progressKind === "url";
+  const unit = progressKind === "url" ? "URL checked" : "file scanned";
+  byId("scan-count").textContent = (complete ? 1 : 0) + " of 1 " + unit;
   const status = byId("scan-status");
   if (status.textContent !== title) {
     const caption = document.createElement("span");
@@ -96,9 +126,6 @@ function setProgress(title, detail, stage, state = "working") {
   track.hidden = !active && !complete;
   if (complete) track.setAttribute("aria-valuenow", "100");
   else track.removeAttribute("aria-valuenow");
-  byId("scan-placeholder").hidden = !active;
-  byId("results-placeholder").hidden = !active || Boolean(report);
-  byId("results-empty").hidden = active || Boolean(report);
   for (const [index, step] of steps.entries()) {
     const stepState = complete || index < stage ? "done"
       : index !== stage ? "pending" : active ? "active" : "failed";
@@ -107,6 +134,23 @@ function setProgress(title, detail, stage, state = "working") {
     if (stepState === "active") step.setAttribute("aria-current", "step");
     else step.removeAttribute("aria-current");
   }
+  syncPanels();
+}
+
+function syncPanels() {
+  const sameKind = progressKind === scanKind;
+  const state = progress.dataset.state;
+  const active = sameKind && (state === "working" || state === "finishing");
+  const showProgress = sameKind && (busy || state === "failed" || state === "cancelled");
+  progress.hidden = !showProgress;
+  dropzone.hidden = scanKind !== "file" || showProgress;
+  urlForm.hidden = scanKind !== "url" || (busy && sameKind);
+  byId("file-privacy").hidden = scanKind !== "file";
+  byId("scan-placeholder").hidden = !active;
+  byId("results-placeholder").hidden = !active || Boolean(report);
+  byId("results-empty").hidden = active || Boolean(report);
+  browse.disabled = busy;
+  urlSubmit.disabled = busy;
 }
 
 function updateElapsed(start) {
@@ -126,7 +170,7 @@ function fileSize(bytes) {
 function visibleMotion() {
   const mode = document.documentElement.dataset.motion;
   const motionEnabled = mode === "full" || (mode === "system" && !reducedMotion.matches);
-  return motionEnabled && currentPage === "scan" && !document.hidden;
+  return motionEnabled && currentPage === "scan" && scanKind === progressKind && !document.hidden;
 }
 
 function loadHashLibrary() {
@@ -190,75 +234,117 @@ function askToUpload(file) {
   });
 }
 
-async function runScan(file) {
-  if (!file || busy) return;
+async function pollAnalysis(id, interval, attempts) {
+  if (typeof id !== "string" || !id) throw new Error("VirusTotal did not return a scan ID.");
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    await delay(interval);
+    const result = await api("/api/analysis/" + encodeURIComponent(id));
+    if (result.status === "done") return result;
+    if (result.status !== "pending") throw new Error("VirusTotal returned an unexpected scan status.");
+  }
+  throw new Error("The analysis is taking longer than expected. Try a new lookup in a minute.");
+}
+
+async function startScan(kind, subject, size, work) {
+  if (busy) return;
   busy = true;
-  browse.disabled = true;
+  progressKind = kind;
+  const typeLabel = kind === "url" ? "URL scan" : "File scan";
+  progress.setAttribute("aria-label", typeLabel);
+  track.setAttribute("aria-label", typeLabel + " progress");
+  byId("progress-label").textContent = typeLabel;
+  const labels = kind === "url" ? ["Submit", "Analyze", "Report"] : ["Read", "Hash check", "Lookup", "Analyze"];
+  byId("steps").dataset.kind = kind;
+  for (const [index, step] of steps.entries()) {
+    step.hidden = index >= labels.length;
+    step.children[1].textContent = labels[index] ?? "";
+  }
   const started = performance.now();
-  byId("scan-size").textContent = fileSize(file.size);
+  byId("scan-size").textContent = size === null ? "" : fileSize(size);
   updateElapsed(started);
   const elapsedTimer = setInterval(() => updateElapsed(started), 1000);
   let stage = 0;
   try {
-    if (file.size > 650 * MB) throw new Error("Choose a file that is 650 MB or smaller.");
-    setProgress("Reading file", file.name, stage);
-    if (visibleMotion()) await delay(180);
-    const hash = await sha256(file, () => {
-      stage = 1;
-      setProgress("Checking the file hash", file.name, stage);
+    const scan = await work((nextTitle, nextStage) => {
+      stage = nextStage;
+      setProgress(nextTitle, subject, stage);
     });
-    if (visibleMotion()) await delay(180);
-    stage = 2;
-    setProgress("Checking VirusTotal", file.name, stage);
-    let result = await api("/api/lookup/" + hash);
-    if (result.status === "unknown") {
-      setProgress("Waiting for upload decision", file.name, stage);
-      if (!await askToUpload(file)) {
-        setProgress("Scan cancelled", "The file was not uploaded.", stage, "cancelled");
-        return;
-      }
-      setProgress("Uploading file…", file.name, stage);
-      const form = new FormData();
-      form.append("file", file);
-      const upload = await api("/api/upload", { method: "POST", body: form });
-      if (typeof upload.analysis_id !== "string" || !upload.analysis_id) throw new Error("VirusTotal did not return a scan ID.");
-      stage = 3;
-      setProgress("Analyzing file", file.name, stage);
-      for (let attempt = 0; attempt < 60; attempt++) {
-        await delay(3000);
-        result = await api("/api/analysis/" + encodeURIComponent(upload.analysis_id));
-        if (result.status === "done") break;
-        if (result.status !== "pending") throw new Error("VirusTotal returned an unexpected scan status.");
-      }
-      if (result.status === "pending") throw new Error("The analysis is taking longer than expected. Try a new lookup in a minute.");
+    if (!scan) {
+      setProgress("Scan cancelled", "The file was not uploaded.", stage, "cancelled");
+      return;
     }
-    if (result.status !== "done" || !Array.isArray(result.engines)) throw new Error("The server did not return an engine report.");
-    if (stage === 2 && visibleMotion()) await delay(220);
-    stage = 3;
-    setProgress("Finishing up", file.name, stage, "finishing");
+    if (scan.result.status !== "done" || !Array.isArray(scan.result.engines)) {
+      throw new Error("The server did not return an engine report.");
+    }
+    if (stage < labels.length - 1 && visibleMotion()) await delay(220);
+    stage = labels.length - 1;
+    setProgress("Finishing up", scan.subject, stage, "finishing");
     if (visibleMotion()) {
       const remaining = minimumPresentation - completionHold - (performance.now() - started);
       await delay(Math.max(420, remaining));
     }
-    setProgress("Complete", file.name, stage, "complete");
+    setProgress("Complete", scan.subject, stage, "complete");
     clearInterval(elapsedTimer);
     updateElapsed(started);
     if (visibleMotion()) await delay(completionHold);
-    renderReport(result, file.name, hash);
-    if (currentPage === "scan") location.hash = "results";
+    reports[kind] = { ...scan, kind };
+    if (scanKind === kind) {
+      renderReport();
+      if (currentPage === "scan") location.hash = kind === "url" ? "url-results" : "results";
+    }
   } catch (error) {
     setProgress("Scan failed", error.message, stage, "failed");
   } finally {
     clearInterval(elapsedTimer);
     if (progress.dataset.state !== "complete") updateElapsed(started);
     busy = false;
-    browse.disabled = false;
-    if (progress.dataset.state === "complete") {
-      progress.hidden = true;
-      dropzone.hidden = false;
-    }
+    syncPanels();
   }
 }
+
+function runScan(file) {
+  if (!file || scanKind !== "file") return;
+  return startScan("file", file.name, file.size, async update => {
+    if (file.size > 650 * MB) throw new Error("Choose a file that is 650 MB or smaller.");
+    update("Reading file", 0);
+    if (visibleMotion()) await delay(180);
+    const hash = await sha256(file, () => update("Checking the file hash", 1));
+    if (visibleMotion()) await delay(180);
+    update("Checking VirusTotal", 2);
+    let result = await api("/api/lookup/" + hash);
+    if (result.status === "unknown") {
+      update("Waiting for upload decision", 2);
+      if (!await askToUpload(file)) return null;
+      update("Uploading file…", 2);
+      const form = new FormData();
+      form.append("file", file);
+      const upload = await api("/api/upload", { method: "POST", body: form });
+      update("Analyzing file", 3);
+      result = await pollAnalysis(upload.analysis_id, 3000, 60);
+    }
+    return { result, subject: file.name, hash };
+  });
+}
+
+urlInput.addEventListener("input", () => { consent.checked = false; });
+urlForm.addEventListener("submit", event => {
+  event.preventDefault();
+  if (busy || !consent.checked) return;
+  const url = urlInput.value.trim().split("#", 1)[0];
+  consent.checked = false;
+  void startScan("url", url, null, async update => {
+    update("Checking URL with VirusTotal", 0);
+    const first = await api("/api/url/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, share: true }),
+    });
+    let result = first;
+    update(first.status === "pending" ? "VirusTotal is analyzing" : "Checking engine verdicts", 1);
+    if (first.status === "pending") result = await pollAnalysis(first.analysis_id, 16000, 12);
+    return { result, subject: first.url ?? url };
+  });
+});
 
 browse.addEventListener("click", () => fileInput.click());
 retry.addEventListener("click", () => fileInput.click());
@@ -271,8 +357,9 @@ const scanPanel = dropzone.closest(".scan-panel");
 scanPanel.addEventListener("dragover", event => {
   if (!event.dataTransfer.types.includes("Files")) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = busy ? "none" : "copy";
-  if (!busy) (progress.hidden ? dropzone : progress).dataset.dragover = "";
+  const canDrop = !busy && scanKind === "file";
+  event.dataTransfer.dropEffect = canDrop ? "copy" : "none";
+  if (canDrop) (progress.hidden ? dropzone : progress).dataset.dragover = "";
 });
 function clearDrag() {
   delete dropzone.dataset.dragover;
@@ -293,40 +380,47 @@ function engineKind(category) {
   return "skip";
 }
 
-function renderReport(result, fileName, hash) {
+function renderReport() {
+  report = reports[scanKind];
+  byId("report").hidden = !report;
+  if (!report) return;
+  const { result, subject, hash, kind } = report;
   const malicious = result.engines.filter(engine => engine.category === "malicious").length;
   const flagged = result.engines.filter(engine => engineKind(engine.category) === "threat").length;
   const clean = result.engines.filter(engine => engineKind(engine.category) === "clean").length;
+  const item = kind === "url" ? "URL" : "file";
   const verdict = byId("verdict");
   if (flagged > 0) {
     verdict.dataset.tone = "flagged";
     byId("verdict-title").textContent = malicious >= 3 ? "Malicious" : "Flagged";
-    byId("verdict-detail").textContent = flagged + " of " + (flagged + clean) + " engines that returned a verdict flagged this file.";
+    byId("verdict-detail").textContent = flagged + " of " + (flagged + clean) + " engines that returned a verdict flagged this " + item + ".";
   } else if (clean > 0) {
     verdict.dataset.tone = "clean";
     byId("verdict-title").textContent = "No threats detected";
-    byId("verdict-detail").textContent = "The reporting engines did not flag this file. Review its source before opening it.";
+    byId("verdict-detail").textContent = "The reporting engines did not flag this " + item + ". Review its source before opening it.";
   } else {
     verdict.dataset.tone = "unknown";
     byId("verdict-title").textContent = "No verdict";
-    byId("verdict-detail").textContent = "No engine returned a usable verdict for this file.";
+    byId("verdict-detail").textContent = "No engine returned a usable verdict for this " + item + ".";
   }
-  report = { engines: result.engines, flagged, total: flagged + clean };
-  byId("report-file").textContent = fileName;
-  byId("report-hash").textContent = hash;
+  report.flagged = flagged;
+  report.total = flagged + clean;
+  report.filter ??= flagged ? "threat" : "all";
+  byId("report-subject-label").textContent = kind === "url" ? "URL" : "File";
+  byId("report-file").textContent = subject;
+  byId("report-fingerprint").hidden = kind === "url";
+  byId("report-hash").textContent = hash ?? "";
   byId("flagged-count").textContent = flagged;
   byId("clean-count").textContent = clean;
   byId("skipped-count").textContent = result.engines.length - flagged - clean;
-  byId("results-empty").hidden = true;
-  byId("report").hidden = false;
-  filter = flagged ? "threat" : "all";
   renderEngines();
 }
 
 function renderEngines() {
+  const { filter, result } = report;
   for (const button of filterButtons) button.setAttribute("aria-pressed", String(button.dataset.filter === filter));
   const fragment = document.createDocumentFragment();
-  const engines = report.engines.filter(engine => filter === "all" || engineKind(engine.category) === filter);
+  const engines = result.engines.filter(engine => filter === "all" || engineKind(engine.category) === filter);
   for (const engine of engines) {
     const kind = engineKind(engine.category);
     const row = document.createElement("tr");
@@ -355,14 +449,24 @@ function renderEngines() {
 
 for (const button of filterButtons) button.addEventListener("click", () => {
   if (!report) return;
-  filter = button.dataset.filter;
+  report.filter = button.dataset.filter;
   renderEngines();
 });
 
 function showThreat(engine) {
   const label = String(engine.threat || engine.category);
-  const info = describeThreat(label);
   const details = byId("threat-details");
+  if (report.kind === "url") {
+    byId("threat-title").textContent = "URL detection";
+    const source = document.createElement("p");
+    source.textContent = engine.engine + " · " + label;
+    const note = document.createElement("p");
+    note.textContent = report.flagged + " of " + report.total + " reporting engines flagged this URL. If you’re unsure about the link, check the sender or visit the organization’s site directly.";
+    details.replaceChildren(source, note);
+    byId("threat-dialog").showModal();
+    return;
+  }
+  const info = describeThreat(label);
   byId("threat-title").textContent = info.name;
   const source = document.createElement("p");
   source.textContent = engine.engine + " · " + label + " · " + (info.risk === "Unclear" ? "Risk unclear" : info.risk + " risk");

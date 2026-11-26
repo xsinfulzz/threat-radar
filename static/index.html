@@ -13,6 +13,7 @@
     <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3m0 8v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M4 12h16"/></symbol>
     <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 7 2 2 4-4m-6 12 2 2 4-4m3-7h9m-9 10h9"/></symbol>
     <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-2.8-2.4-6.2-2.8-9-1v14c2.8-1.8 6.2-1.4 9 1 2.8-2.4 6.2-2.8 9-1V5c-2.8-1.8-6.2-1.4-9 1v14"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15a8.7 8.7 0 0 1-11.6-11.5A8.8 8.8 0 1 0 20.5 15Z"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
@@ -50,12 +51,16 @@
       </header>
       <main class="content" id="workspace" tabindex="-1">
         <section class="view" id="scan" aria-labelledby="scan-heading">
+          <nav class="mode-switch" aria-label="Scanner mode">
+            <a class="button" href="#scan" data-mode="file" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Files</a>
+            <a class="button" href="#url" data-mode="url"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg>URLs</a>
+          </nav>
           <header class="page-heading">
             <h1 id="scan-heading" tabindex="-1">Scan files</h1>
-            <p>Check a file against antivirus engines through VirusTotal.</p>
+            <p id="scan-description">Check a file against antivirus engines through VirusTotal.</p>
           </header>
           <section class="panel scan-panel" aria-labelledby="intake-heading">
-            <header class="panel-header"><h2 id="intake-heading">File scanner</h2><span class="badge">SHA-256</span></header>
+            <header class="panel-header"><h2 id="intake-heading">File scanner</h2><span class="badge" id="scan-badge">SHA-256</span></header>
             <div class="dropzone" id="dropzone">
               <span class="file-icon drop-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
               <h3><span class="drop-ready">Drop a file here</span><span class="drop-active">Release to scan</span></h3>
@@ -63,13 +68,22 @@
               <button class="button primary" id="browse" type="button"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Choose file</button>
             </div>
             <input id="file" type="file" hidden>
+            <form class="url-form" id="url-form" hidden>
+              <label for="url-input">URL or domain</label>
+              <div class="url-field">
+                <input id="url-input" type="text" inputmode="url" spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="2048" placeholder="https://example.com" required aria-describedby="url-sharing">
+                <button class="button primary" id="url-submit" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg>Scan URL</button>
+              </div>
+              <p id="url-sharing">VirusTotal may share checked addresses publicly. Use public links and leave out private invitations, sign-in links, and reset links.</p>
+              <label class="url-consent"><input id="url-consent" type="checkbox" required aria-describedby="url-sharing"> Share this address with VirusTotal to check it</label>
+            </form>
             <div class="scan-progress" id="progress" role="region" aria-label="File scan" hidden>
               <svg class="scan-beam" viewBox="0 0 720 320" preserveAspectRatio="none" aria-hidden="true">
                 <rect x="1" y="1" width="718" height="318" rx="10" pathLength="100"/>
               </svg>
               <div class="scan-load-inner">
                 <div class="scan-load-header">
-                  <span class="eyebrow">File scan</span>
+                  <span class="eyebrow" id="progress-label">File scan</span>
                 </div>
                 <div class="scan-current" role="status">
                   <span class="scan-glyph" aria-hidden="true">
@@ -96,7 +110,7 @@
             </div>
           </section>
           <div class="scan-placeholder" id="scan-placeholder" aria-hidden="true" hidden></div>
-          <aside class="panel privacy-note">
+          <aside class="panel privacy-note" id="file-privacy">
             <svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>
             <div><h2>Hash lookup first</h2><p>ZeroWare checks the file’s fingerprint first. If VirusTotal needs the file itself, you choose whether to upload it.</p></div>
             <a href="#docs" data-page="docs">How it works<svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></a>
@@ -104,8 +118,12 @@
         </section>
 
         <section class="view" id="results" aria-labelledby="results-heading" hidden>
+          <nav class="mode-switch" aria-label="Results mode">
+            <a class="button" href="#results" data-mode="file" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Files</a>
+            <a class="button" href="#url-results" data-mode="url"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg>URLs</a>
+          </nav>
           <header class="page-heading heading-with-action">
-            <div><h1 id="results-heading" tabindex="-1">Results</h1><p>Review the latest file report from this session.</p></div>
+            <div><h1 id="results-heading" tabindex="-1">Results</h1><p id="results-description">Review the latest file report from this session.</p></div>
             <a class="button" href="#scan" data-page="scan"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Back to scan</a>
           </header>
           <section class="panel empty" id="results-empty">
@@ -122,8 +140,8 @@
                 <div><h2 id="verdict-title"></h2><p id="verdict-detail"></p></div>
               </header>
               <dl class="report-metadata">
-                <div><dt>File</dt><dd id="report-file"></dd></div>
-                <div><dt>SHA-256</dt><dd><code id="report-hash"></code></dd></div>
+                <div><dt id="report-subject-label">File</dt><dd id="report-file"></dd></div>
+                <div id="report-fingerprint"><dt>SHA-256</dt><dd><code id="report-hash"></code></dd></div>
               </dl>
               <dl class="metrics">
                 <div><dt>Flagged</dt><dd id="flagged-count">0</dd></div>
@@ -158,7 +176,7 @@
               <h2>How scanning works</h2>
               <ol><li>ZeroWare calculates a SHA-256 fingerprint on your device.</li><li>The server checks that fingerprint with VirusTotal.</li><li>If VirusTotal has no report, you can approve an upload for analysis.</li><li>Results shows the engine verdicts returned by VirusTotal.</li></ol>
             </section>
-            <section class="panel doc-panel"><h2>Privacy</h2><p>Known files are checked by fingerprint only. VirusTotal may share uploaded files with security partners. Choose Cancel for personal, private, or confidential files.</p><p>Your latest report is held in this page for the current session.</p></section>
+            <section class="panel doc-panel"><h2>Privacy</h2><p>Known files are checked by fingerprint only. VirusTotal may share uploaded files with security partners. Choose Cancel for personal, private, or confidential files.</p><p>URL checks send the full address, excluding its fragment, to VirusTotal. Use public addresses without private or personal information.</p><p>Your latest reports are held in this page for the current session.</p></section>
             <section class="panel doc-panel"><h2>Reading the results</h2><dl><div><dt>Flagged</dt><dd>An engine reported the file as malicious or suspicious. Open “Learn more” to see what its label generally means.</dd></div><div><dt>Clean</dt><dd>The engine reported no detection. A clean report cannot guarantee a file is safe.</dd></div><div><dt>Not scanned</dt><dd>The engine did not return a usable verdict for this file.</dd></div></dl></section>
             <section class="panel doc-panel"><h2>Limits</h2><p>Files can be up to 650 MB. Uploads and analysis can take several minutes. If VirusTotal reports a rate limit, wait and retry.</p><p>The web scanner reports results from VirusTotal. Device scanning and quarantine are features of the desktop app.</p></section>
           </div>
