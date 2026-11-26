@@ -323,12 +323,22 @@ code { font-family: var(--mono); overflow-wrap: anywhere; }
 .empty { min-height: 252px; display: grid; align-content: center; justify-items: center; text-align: center; }
 .verdict { --signal: var(--muted); border-inline-start: 3px solid var(--signal); display: grid; gap: 16px; }
 .verdict[data-tone="clean"] { --signal: var(--safe); }
-.verdict[data-tone="flagged"] { --signal: var(--coral); }
+.verdict:is([data-tone="flagged"], [data-tone="local-match"]) { --signal: var(--coral); }
+.verdict[data-tone="local-caution"] { --signal: var(--warning); }
 .verdict-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .verdict-header > div { flex: 1 1 220px; }
 .verdict-header > button { margin-inline-start: auto; }
 .verdict-header .file-icon { color: var(--signal); }
 .verdict-header h2 { font-size: 1.2rem; color: var(--signal); }
+.local-source { display: inline-block; margin-bottom: 5px; }
+.local-report { display: grid; gap: 16px; }
+.local-report header p, .local-evidence h3 + p { margin-top: 4px; }
+.local-evidence:not([hidden]) ~ .local-evidence { border-top: 1px solid var(--line); padding-top: 12px; }
+.local-evidence ul { display: grid; gap: 6px; margin: 7px 0 0; padding-inline-start: 19px; }
+.local-evidence li { overflow-wrap: anywhere; }
+#local-indicators-section h3 { color: var(--warning); }
+.local-limit { padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.local-limit p { margin-top: 4px; }
 .report-metadata { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px 16px; }
 .report-metadata dd, .upload-name { overflow-wrap: anywhere; }
 dt { color: var(--muted); font-size: .78rem; }

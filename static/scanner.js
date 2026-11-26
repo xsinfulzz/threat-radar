@@ -1,5 +1,6 @@
 import { describeThreat } from "./threat-labels.js";
 import { engineKind, summarizeFileResults } from "./file-summary.js";
+import { checkLocalFile } from "./local-file-check.js";
 
 const MB = 1024 * 1024;
 const HASH_WASM_URL = "https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/sha256.umd.min.js";
@@ -216,13 +217,31 @@ async function sha256(file, startHash) {
   return hash.digest();
 }
 
+class ScanServiceError extends Error {
+  constructor(message, fallbackReason) {
+    super(message);
+    this.fallbackReason = fallbackReason;
+  }
+}
+
 async function api(path, options) {
   let response;
   try { response = await fetch(path, options); }
-  catch { throw new Error("Could not reach the ZeroWare server. Check your connection and try again."); }
+  catch (error) {
+    const reason = error?.name === "TimeoutError" ? "The online scan timed out." : "ZeroWare could not reach the online scanner.";
+    throw new ScanServiceError(reason, reason);
+  }
   const body = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(body?.error || "Server request failed (" + response.status + ").");
-  if (!body || typeof body !== "object") throw new Error("The server returned an unreadable response. Try again.");
+  if (!response.ok) {
+    let reason;
+    if (response.status === 429) reason = "VirusTotal’s request limit was reached.";
+    else if (response.status === 401 || response.status === 403) reason = "VirusTotal access is unavailable.";
+    else if (response.status === 408 || response.status >= 500) reason = "The online scanner is temporarily unavailable.";
+    throw new ScanServiceError(body?.error || "Server request failed (" + response.status + ").", reason);
+  }
+  if (!body || typeof body !== "object") {
+    throw new ScanServiceError("The server returned an unreadable response.", "The online scanner returned an unreadable response.");
+  }
   return body;
 }
 
@@ -236,14 +255,21 @@ function askToUpload(file) {
 }
 
 async function pollAnalysis(id, interval, attempts) {
-  if (typeof id !== "string" || !id) throw new Error("VirusTotal did not return a scan ID.");
+  if (typeof id !== "string" || !id) {
+    throw new ScanServiceError("VirusTotal did not return a scan ID.", "VirusTotal did not return a scan ID.");
+  }
   for (let attempt = 0; attempt < attempts; attempt++) {
     await delay(interval);
-    const result = await api("/api/analysis/" + encodeURIComponent(id));
+    const result = await api("/api/analysis/" + encodeURIComponent(id), { signal: AbortSignal.timeout(12000) });
     if (result.status === "done") return result;
-    if (result.status !== "pending") throw new Error("VirusTotal returned an unexpected scan status.");
+    if (result.status !== "pending") {
+      throw new ScanServiceError("VirusTotal returned an unexpected scan status.", "VirusTotal returned an incomplete report.");
+    }
   }
-  throw new Error("The analysis is taking longer than expected. Try a new lookup in a minute.");
+  throw new ScanServiceError(
+    "The analysis is taking longer than expected. Try a new lookup in a minute.",
+    "VirusTotal did not finish the analysis in time.",
+  );
 }
 
 async function startScan(kind, subject, size, work) {
@@ -274,7 +300,8 @@ async function startScan(kind, subject, size, work) {
       setProgress("Scan cancelled", "The file was not uploaded.", stage, "cancelled");
       return;
     }
-    if (scan.result.status !== "done" || !Array.isArray(scan.result.engines)) {
+    const local = scan.result.source === "local";
+    if (scan.result.status !== "done" || (!local && !Array.isArray(scan.result.engines))) {
       throw new Error("The server did not return an engine report.");
     }
     if (stage < labels.length - 1 && visibleMotion()) await delay(220);
@@ -284,7 +311,7 @@ async function startScan(kind, subject, size, work) {
       const remaining = minimumPresentation - completionHold - (performance.now() - started);
       await delay(Math.max(420, remaining));
     }
-    setProgress("Complete", scan.subject, stage, "complete");
+    setProgress(local ? "Local check complete" : "Complete", scan.subject, stage, "complete");
     clearInterval(elapsedTimer);
     updateElapsed(started);
     if (visibleMotion()) await delay(completionHold);
@@ -309,22 +336,45 @@ function runScan(file) {
     if (file.size > 650 * MB) throw new Error("Choose a file that is 650 MB or smaller.");
     update("Reading file", 0);
     if (visibleMotion()) await delay(180);
-    const hash = await sha256(file, () => update("Checking the file hash", 1));
+    let hash;
+    try {
+      hash = await sha256(file, () => update("Checking the file hash", 1));
+    } catch {
+      return localFileReport(file, null, "The file fingerprint could not be calculated.", false, update);
+    }
     if (visibleMotion()) await delay(180);
     update("Checking VirusTotal", 2);
-    let result = await api("/api/lookup/" + hash);
-    if (result.status === "unknown") {
-      update("Waiting for upload decision", 2);
-      if (!await askToUpload(file)) return null;
-      update("Uploading file…", 2);
-      const form = new FormData();
-      form.append("file", file);
-      const upload = await api("/api/upload", { method: "POST", body: form });
-      update("Analyzing file", 3);
-      result = await pollAnalysis(upload.analysis_id, 3000, 60);
+    let uploadAttempted = false;
+    try {
+      let result = await api("/api/lookup/" + hash, { signal: AbortSignal.timeout(12000) });
+      if (result.status === "unknown") {
+        update("Waiting for upload decision", 2);
+        if (!await askToUpload(file)) return null;
+        update("Uploading file…", 2);
+        const form = new FormData();
+        form.append("file", file);
+        uploadAttempted = true;
+        const upload = await api("/api/upload", { method: "POST", body: form });
+        update("Analyzing file", 3);
+        result = await pollAnalysis(upload.analysis_id, 3000, 60);
+      }
+      if (result.status !== "done" || !Array.isArray(result.engines)
+        || !result.engines.some(engine => engineKind(engine?.category) !== "skip")) {
+        return localFileReport(file, hash, "VirusTotal did not return a usable engine verdict.", uploadAttempted, update);
+      }
+      return { result, subject: file.name, hash };
+    } catch (error) {
+      if (!error.fallbackReason) throw error;
+      return localFileReport(file, hash, error.fallbackReason, uploadAttempted, update);
     }
-    return { result, subject: file.name, hash };
   });
+}
+
+async function localFileReport(file, hash, reason, uploadAttempted, update) {
+  byId("steps").lastElementChild.children[1].textContent = "Local check";
+  update("Checking file in your browser", 3);
+  const result = await checkLocalFile(file, hash);
+  return { result, subject: file.name, hash, reason, uploadAttempted };
 }
 
 urlInput.addEventListener("input", () => { consent.checked = false; });
@@ -380,6 +430,20 @@ function renderReport() {
   byId("report").hidden = !report;
   if (!report) return;
   const { result, subject, hash, kind } = report;
+  const local = result.source === "local";
+  byId("report-source").hidden = !local;
+  byId("local-report").hidden = !local;
+  byId("vt-metrics").hidden = local;
+  byId("vt-engine-panel").hidden = local;
+  byId("report-subject-label").textContent = kind === "url" ? "URL" : "File";
+  byId("report-file").textContent = subject;
+  byId("report-fingerprint").hidden = kind === "url" || !hash;
+  byId("report-hash").textContent = hash ?? "";
+  if (local) {
+    byId("summarize-results").hidden = true;
+    renderLocalReport(report);
+    return;
+  }
   const malicious = result.engines.filter(engine => engine.category === "malicious").length;
   const flagged = result.engines.filter(engine => engineKind(engine.category) === "threat").length;
   const clean = result.engines.filter(engine => engineKind(engine.category) === "clean").length;
@@ -402,14 +466,58 @@ function renderReport() {
   report.total = flagged + clean;
   report.filter ??= flagged ? "threat" : "all";
   byId("summarize-results").hidden = kind !== "file" || flagged === 0;
-  byId("report-subject-label").textContent = kind === "url" ? "URL" : "File";
-  byId("report-file").textContent = subject;
-  byId("report-fingerprint").hidden = kind === "url";
-  byId("report-hash").textContent = hash ?? "";
   byId("flagged-count").textContent = flagged;
   byId("clean-count").textContent = clean;
   byId("skipped-count").textContent = result.engines.length - flagged - clean;
   renderEngines();
+}
+
+function renderLocalReport({ result, reason, uploadAttempted }) {
+  const knownMalware = result.matches.some(match => match.kind === "malware");
+  let title = "Inconclusive";
+  let message = "The browser check found no match or warning signs in its limited checks.";
+  let tone = "local-unknown";
+  if (knownMalware) {
+    title = "Known malware signature matched";
+    message = "The file’s fingerprint matches a published malware report. Leave the file unopened.";
+    tone = "local-match";
+  } else if (result.matches.length) {
+    title = "Antivirus test signature matched";
+    message = "The file matches a harmless antivirus test file.";
+    tone = "local-caution";
+  } else if (result.indicators.length) {
+    title = "Suspicious file indicators";
+    message = "The browser check found warning signs. Leave the file unopened until it can be checked with a full antivirus scan.";
+    tone = "local-caution";
+  }
+  byId("verdict").dataset.tone = tone;
+  byId("verdict-title").textContent = title;
+  byId("verdict-detail").textContent = message;
+  byId("local-reason").textContent = reason + (uploadAttempted
+    ? " An upload was attempted with your approval. The local check sends no additional data."
+    : " The local check did not upload the file.");
+
+  for (const [id, entries] of [
+    ["local-matches", result.matches],
+    ["local-indicators", result.indicators],
+    ["local-checks", result.checks],
+  ]) {
+    const rows = entries.map(entry => {
+      if (typeof entry === "string") return detailsText("li", entry);
+      const row = document.createElement("li");
+      row.append(detailsText("strong", entry.name), detailsText("p", entry.detail));
+      if (entry.url) {
+        const source = detailsText("a", entry.source);
+        source.href = entry.url;
+        source.target = "_blank";
+        source.rel = "noopener noreferrer";
+        row.append(source);
+      }
+      return row;
+    });
+    byId(id).replaceChildren(...rows);
+    byId(id + "-section").hidden = !rows.length;
+  }
 }
 
 function renderEngines() {

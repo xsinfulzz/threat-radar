@@ -137,20 +137,47 @@
             <section class="panel verdict" id="verdict" aria-labelledby="verdict-title">
               <header class="verdict-header">
                 <span class="verdict-icon file-icon"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span>
-                <div><h2 id="verdict-title"></h2><p id="verdict-detail"></p></div>
+                <div>
+                  <span class="badge local-source" id="report-source" hidden>Local fallback</span>
+                  <h2 id="verdict-title"></h2>
+                  <p id="verdict-detail"></p>
+                </div>
                 <button class="button" id="summarize-results" type="button" hidden>Summarize results</button>
               </header>
               <dl class="report-metadata">
                 <div><dt id="report-subject-label">File</dt><dd id="report-file"></dd></div>
                 <div id="report-fingerprint"><dt>SHA-256</dt><dd><code id="report-hash"></code></dd></div>
               </dl>
-              <dl class="metrics">
+              <dl class="metrics" id="vt-metrics">
                 <div><dt>Flagged</dt><dd id="flagged-count">0</dd></div>
                 <div><dt>Clean</dt><dd id="clean-count">0</dd></div>
                 <div><dt>Not scanned</dt><dd id="skipped-count">0</dd></div>
               </dl>
             </section>
-            <section class="panel engine-panel" aria-labelledby="engine-heading">
+            <section class="panel local-report" id="local-report" aria-labelledby="local-report-heading" hidden>
+              <header>
+                <h2 id="local-report-heading">Local check details</h2>
+                <p id="local-reason"></p>
+              </header>
+              <section class="local-evidence" id="local-matches-section" aria-labelledby="local-matches-heading" hidden>
+                <h3 id="local-matches-heading">Exact signature matches</h3>
+                <ul id="local-matches"></ul>
+              </section>
+              <section class="local-evidence" id="local-indicators-section" aria-labelledby="local-indicators-heading" hidden>
+                <h3 id="local-indicators-heading">Suspicious indicators</h3>
+                <p>These signs can appear in ordinary files too. They need a closer look.</p>
+                <ul id="local-indicators"></ul>
+              </section>
+              <section class="local-evidence" id="local-checks-section" aria-labelledby="local-checks-heading" hidden>
+                <h3 id="local-checks-heading">Checks performed</h3>
+                <ul id="local-checks"></ul>
+              </section>
+              <aside class="local-limit">
+                <h3>What this result can tell you</h3>
+                <p>Harmful files can pass these checks. If you don’t trust the file, leave it unopened and scan it with your device’s antivirus.</p>
+              </aside>
+            </section>
+            <section class="panel engine-panel" id="vt-engine-panel" aria-labelledby="engine-heading">
               <header class="engine-header">
                 <h2 id="engine-heading">Engine verdicts</h2>
                 <div class="filters" id="filters" role="group" aria-label="Filter engine verdicts">
@@ -179,7 +206,7 @@
             </section>
             <section class="panel doc-panel"><h2>Privacy</h2><p>Known files are checked by fingerprint only. VirusTotal may share uploaded files with security partners. Choose Cancel for personal, private, or confidential files.</p><p>URL checks send the full address, excluding its fragment, to VirusTotal. Use public addresses without private or personal information.</p><p>Your latest reports are held in this page for the current session.</p></section>
             <section class="panel doc-panel"><h2>Reading the results</h2><dl><div><dt>Flagged</dt><dd>An engine reported the file as malicious or suspicious. Choose “Learn more” for its label or “Summarize results” for what the engines reported together.</dd></div><div><dt>Clean</dt><dd>The engine reported no detection. A clean report cannot guarantee a file is safe.</dd></div><div><dt>Not scanned</dt><dd>The engine did not return a usable verdict for this file.</dd></div></dl></section>
-            <section class="panel doc-panel"><h2>Limits</h2><p>Files can be up to 650 MB. Uploads and analysis can take several minutes. If VirusTotal reports a rate limit, wait and retry.</p><p>The web scanner reports results from VirusTotal. Device scanning and quarantine are features of the desktop app.</p></section>
+            <section class="panel doc-panel"><h2>Limits</h2><p>Files can be up to 650 MB. Uploads and analysis can take several minutes. If VirusTotal is unavailable, ZeroWare can check a selected file for a limited set of signatures and warning signs in your browser. A local result can miss threats.</p><p>URL checks need VirusTotal. Device scanning and quarantine are features of the desktop app.</p></section>
           </div>
         </section>
       </main>
