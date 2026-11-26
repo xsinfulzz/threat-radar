@@ -1,4 +1,5 @@
 import { describeThreat } from "./threat-labels.js";
+import { engineKind, summarizeFileResults } from "./file-summary.js";
 
 const MB = 1024 * 1024;
 const HASH_WASM_URL = "https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/sha256.umd.min.js";
@@ -100,7 +101,7 @@ themeButton.addEventListener("click", () => {
 const motionSelect = byId("motion");
 try {
   const savedMotion = localStorage.getItem("zeroware-motion");
-  if (savedMotion === "full" || savedMotion === "reduce") motionSelect.value = savedMotion;
+  if (["full", "system", "reduce"].includes(savedMotion)) motionSelect.value = savedMotion;
 } catch { /* The setting works for this page when storage is unavailable. */ }
 document.documentElement.dataset.motion = motionSelect.value;
 motionSelect.addEventListener("change", () => {
@@ -374,12 +375,6 @@ scanPanel.addEventListener("drop", event => {
   void runScan(event.dataTransfer.files[0]);
 });
 
-function engineKind(category) {
-  if (category === "malicious" || category === "suspicious") return "threat";
-  if (category === "undetected" || category === "harmless") return "clean";
-  return "skip";
-}
-
 function renderReport() {
   report = reports[scanKind];
   byId("report").hidden = !report;
@@ -406,6 +401,7 @@ function renderReport() {
   report.flagged = flagged;
   report.total = flagged + clean;
   report.filter ??= flagged ? "threat" : "all";
+  byId("summarize-results").hidden = kind !== "file" || flagged === 0;
   byId("report-subject-label").textContent = kind === "url" ? "URL" : "File";
   byId("report-file").textContent = subject;
   byId("report-fingerprint").hidden = kind === "url";
@@ -453,24 +449,97 @@ for (const button of filterButtons) button.addEventListener("click", () => {
   renderEngines();
 });
 
-function showThreat(engine) {
-  const label = String(engine.threat || engine.category);
+const threatDialog = byId("threat-dialog");
+const threatTitle = byId("threat-title");
+const threatAction = byId("threat-action");
+byId("summarize-results").addEventListener("click", () => showFileSummary(report));
+
+function displayThreatDetails(title, content, action) {
   const details = byId("threat-details");
-  if (report.kind === "url") {
-    byId("threat-title").textContent = "URL detection";
-    const source = document.createElement("p");
-    source.textContent = engine.engine + " · " + label;
-    const note = document.createElement("p");
-    note.textContent = report.flagged + " of " + report.total + " reporting engines flagged this URL. If you’re unsure about the link, check the sender or visit the organization’s site directly.";
-    details.replaceChildren(source, note);
-    byId("threat-dialog").showModal();
+  threatTitle.textContent = title;
+  details.replaceChildren(...content);
+  byId("threat-actions").hidden = !action;
+  threatAction.textContent = action?.label ?? "";
+  threatAction.onclick = action?.run ?? null;
+  if (!threatDialog.open) threatDialog.showModal();
+  threatDialog.scrollTop = 0;
+  threatTitle.focus({ preventScroll: true });
+}
+
+function detailsText(tag, value) {
+  const element = document.createElement(tag);
+  element.textContent = value;
+  return element;
+}
+
+function showFileSummary(sourceReport, engine) {
+  if (sourceReport?.kind !== "file" || !sourceReport.flagged) return;
+  const summary = summarizeFileResults(sourceReport.result.engines);
+  const verdict = summary.malicious + " malicious · " + summary.suspicious + " suspicious · "
+    + summary.clean + " clear · " + summary.skipped + " not scanned";
+  const fileType = sourceReport.result.type;
+  const subject = detailsText("p", fileType ? sourceReport.subject + " · " + fileType : sourceReport.subject);
+  subject.className = "summary-subject";
+  const counts = detailsText("p", verdict);
+  counts.className = "summary-counts";
+  const content = [subject, counts, detailsText("h3", "Likely classification")];
+  if (summary.classifications.length) {
+    const list = document.createElement("ul");
+    list.className = "summary-groups";
+    for (const info of summary.classifications) {
+      const row = document.createElement("li");
+      const count = info.count + (info.count === 1 ? " engine" : " engines");
+      const impact = info.name === "Test file (EICAR)"
+        ? "The genuine EICAR test file is harmless. This label alone cannot verify the file is that test sample."
+        : info.impact;
+      row.append(detailsText("strong", info.name + " · " + count), detailsText("p", impact));
+      list.append(row);
+    }
+    content.push(list);
+  } else {
+    content.push(detailsText("p", "The engines flagged the file, but their labels do not identify a specific threat type or what it might do."));
+  }
+  if (summary.classifications.length && summary.unclear) {
+    content.push(detailsText("p", summary.unclear + " of the flags used broad or unrecognized labels."));
+  }
+  if (summary.tags.length) content.push(detailsText("p", "Hints in the engine labels · " + summary.tags.join(", ")));
+
+  const nextStep = summary.testLabels === summary.detections.length
+    ? "If you intentionally scanned a verified EICAR test file, this detection is expected. If you don’t recognize the file, leave it unopened and check where it came from."
+    : "Leave the file unopened. If you already ran it, run a full scan with a trusted antivirus. If this is a shared or school computer, let the person who manages it know.";
+  content.push(detailsText("h3", "What to do next"), detailsText("p", nextStep));
+  const limit = sourceReport.flagged <= 2
+    ? "A small number of detections can include false positives. The result cannot confirm what the file actually does."
+    : "These are possible effects inferred from engine labels. The report cannot confirm what the file actually does.";
+  content.push(detailsText("p", limit));
+
+  const evidence = document.createElement("details");
+  evidence.className = "summary-evidence";
+  const list = document.createElement("ul");
+  for (const { engine: name, category, label } of summary.detections) {
+    list.append(detailsText("li", name + " · " + category + " · " + (label || "No detection label")));
+  }
+  evidence.append(detailsText("summary", "Show original engine labels (" + summary.detections.length + ")"), list);
+  content.push(evidence);
+  displayThreatDetails("Scan summary", content, engine && {
+    label: "Back to engine details",
+    run: () => showThreat(engine, sourceReport),
+  });
+}
+
+function showThreat(engine, sourceReport = report) {
+  const label = String(engine.threat || engine.category);
+  const agreement = sourceReport.flagged + " of " + sourceReport.total + " reporting engines flagged this ";
+  if (sourceReport.kind === "url") {
+    displayThreatDetails("URL detection", [
+      detailsText("p", engine.engine + " · " + label),
+      detailsText("p", agreement + "URL. If you’re unsure about the link, check the sender or visit the organization’s site directly."),
+    ]);
     return;
   }
   const info = describeThreat(label);
-  byId("threat-title").textContent = info.name;
-  const source = document.createElement("p");
-  source.textContent = engine.engine + " · " + label + " · " + (info.risk === "Unclear" ? "Risk unclear" : info.risk + " risk");
-  details.replaceChildren(source);
+  const risk = info.risk === "Unclear" ? "Risk unclear" : info.risk + " risk";
+  const content = [detailsText("p", engine.engine + " · " + label + " · " + risk)];
   for (const [heading, message] of [
     ["What the label generally means", info.meaning],
     ["Potential impact", info.impact],
@@ -478,14 +547,11 @@ function showThreat(engine) {
     ["Naming hints", info.tags.join(" · ")],
   ]) {
     if (!message) continue;
-    const title = document.createElement("h3");
-    title.textContent = heading;
-    const body = document.createElement("p");
-    body.textContent = message;
-    details.append(title, body);
+    content.push(detailsText("h3", heading), detailsText("p", message));
   }
-  const note = document.createElement("p");
-  note.textContent = report.flagged + " of " + report.total + " reporting engines flagged this file. Engine labels alone can’t confirm how a file behaves.";
-  details.append(note);
-  byId("threat-dialog").showModal();
+  content.push(detailsText("p", agreement + "file. Engine labels alone can’t confirm how a file behaves."));
+  displayThreatDetails(info.name, content, {
+    label: "Summarize results",
+    run: () => showFileSummary(sourceReport, engine),
+  });
 }

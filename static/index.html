@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-motion="full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,8 +42,8 @@
         <div class="topbar-actions">
           <label class="motion-setting" for="motion">Motion</label>
           <select class="button motion-select" id="motion">
+            <option value="full" selected>Always on</option>
             <option value="system">System</option>
-            <option value="full">Always on</option>
             <option value="reduce">Reduced</option>
           </select>
           <button class="button icon-button" id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
@@ -138,6 +138,7 @@
               <header class="verdict-header">
                 <span class="verdict-icon file-icon"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span>
                 <div><h2 id="verdict-title"></h2><p id="verdict-detail"></p></div>
+                <button class="button" id="summarize-results" type="button" hidden>Summarize results</button>
               </header>
               <dl class="report-metadata">
                 <div><dt id="report-subject-label">File</dt><dd id="report-file"></dd></div>
@@ -177,7 +178,7 @@
               <ol><li>ZeroWare calculates a SHA-256 fingerprint on your device.</li><li>The server checks that fingerprint with VirusTotal.</li><li>If VirusTotal has no report, you can approve an upload for analysis.</li><li>Results shows the engine verdicts returned by VirusTotal.</li></ol>
             </section>
             <section class="panel doc-panel"><h2>Privacy</h2><p>Known files are checked by fingerprint only. VirusTotal may share uploaded files with security partners. Choose Cancel for personal, private, or confidential files.</p><p>URL checks send the full address, excluding its fragment, to VirusTotal. Use public addresses without private or personal information.</p><p>Your latest reports are held in this page for the current session.</p></section>
-            <section class="panel doc-panel"><h2>Reading the results</h2><dl><div><dt>Flagged</dt><dd>An engine reported the file as malicious or suspicious. Open “Learn more” to see what its label generally means.</dd></div><div><dt>Clean</dt><dd>The engine reported no detection. A clean report cannot guarantee a file is safe.</dd></div><div><dt>Not scanned</dt><dd>The engine did not return a usable verdict for this file.</dd></div></dl></section>
+            <section class="panel doc-panel"><h2>Reading the results</h2><dl><div><dt>Flagged</dt><dd>An engine reported the file as malicious or suspicious. Choose “Learn more” for its label or “Summarize results” for what the engines reported together.</dd></div><div><dt>Clean</dt><dd>The engine reported no detection. A clean report cannot guarantee a file is safe.</dd></div><div><dt>Not scanned</dt><dd>The engine did not return a usable verdict for this file.</dd></div></dl></section>
             <section class="panel doc-panel"><h2>Limits</h2><p>Files can be up to 650 MB. Uploads and analysis can take several minutes. If VirusTotal reports a rate limit, wait and retry.</p><p>The web scanner reports results from VirusTotal. Device scanning and quarantine are features of the desktop app.</p></section>
           </div>
         </section>
@@ -211,10 +212,11 @@
 
   <dialog id="threat-dialog" aria-labelledby="threat-title">
     <header class="dialog-header">
-      <h2 id="threat-title"></h2>
+      <h2 id="threat-title" tabindex="-1"></h2>
       <form method="dialog"><button class="button icon-button" aria-label="Close threat details"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button></form>
     </header>
     <div id="threat-details" class="doc-panel"></div>
+    <div class="dialog-actions" id="threat-actions" hidden><button class="button primary" id="threat-action" type="button"></button></div>
   </dialog>
 </body>
 </html>
