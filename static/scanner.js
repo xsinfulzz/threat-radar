@@ -5,14 +5,23 @@ const HASH_WASM_URL = "https://cdn.jsdelivr.net/npm/hash-wasm@4.11.0/dist/sha256
 const pages = { scan: "Scan", results: "Results", docs: "Docs" };
 const byId = id => document.getElementById(id);
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const completionHold = 900;
+const minimumPresentation = 4000;
 
 const fileInput = byId("file");
 const dropzone = byId("dropzone");
 const browse = byId("browse");
+const retry = byId("choose-again");
 const uploadDialog = byId("upload-dialog");
 const steps = [...byId("steps").children];
+const progress = byId("progress");
+const track = byId("scan-track");
 const filterButtons = [...byId("filters").querySelectorAll("button")];
 const engineBody = byId("engines");
+for (const id of ["scan-placeholder", "results-placeholder"]) {
+  byId(id).append(byId("report-skeleton").content.cloneNode(true));
+}
 let busy = false;
 let currentPage;
 let report;
@@ -58,22 +67,53 @@ themeButton.addEventListener("click", () => {
 });
 
 function setProgress(title, detail, stage, state = "working") {
-  const progress = byId("progress");
+  const active = state === "working" || state === "finishing";
+  const complete = state === "complete";
+  dropzone.hidden = true;
   progress.hidden = false;
   progress.dataset.state = state;
-  byId("scan-status").textContent = title;
+  retry.hidden = active || complete;
+  byId("scan-count").textContent = (complete ? 1 : 0) + " of 1 file scanned";
+  const status = byId("scan-status");
+  if (status.textContent !== title) {
+    const caption = document.createElement("span");
+    caption.textContent = title;
+    status.replaceChildren(caption);
+  }
   byId("scan-detail").textContent = detail;
   byId("footer-status").textContent = title;
+  track.hidden = !active && !complete;
+  if (complete) track.setAttribute("aria-valuenow", "100");
+  else track.removeAttribute("aria-valuenow");
+  byId("scan-placeholder").hidden = !active;
+  byId("results-placeholder").hidden = !active || Boolean(report);
+  byId("results-empty").hidden = active || Boolean(report);
   for (const [index, step] of steps.entries()) {
-    step.dataset.state = state === "complete" || index < stage ? "done"
-      : index !== stage ? "pending" : state === "working" ? "active" : "failed";
-    if (step.dataset.state === "active") step.setAttribute("aria-current", "step");
+    const stepState = complete || index < stage ? "done"
+      : index !== stage ? "pending" : active ? "active" : "failed";
+    step.dataset.state = stepState;
+    step.firstElementChild.textContent = stepState === "done" ? "✓" : index + 1;
+    if (stepState === "active") step.setAttribute("aria-current", "step");
     else step.removeAttribute("aria-current");
   }
-  if (!report) {
-    byId("results-empty").querySelector("h2").textContent = state === "working" ? "Scan in progress" : "No scan results yet";
-    byId("results-empty").querySelector("p").textContent = state === "working" ? detail : "Choose a file in Scan to see its report here.";
-  }
+}
+
+function updateElapsed(start) {
+  const seconds = Math.floor((performance.now() - start) / 1000);
+  const time = byId("scan-elapsed");
+  time.dateTime = "PT" + seconds + "S";
+  const clock = [Math.floor(seconds / 60), seconds % 60].map(part => String(part).padStart(2, "0")).join(":");
+  time.textContent = "Elapsed " + clock;
+}
+
+function fileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < MB) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / MB).toFixed(1) + " MB";
+}
+
+function visibleMotion() {
+  return currentPage === "scan" && !document.hidden && !reducedMotion.matches;
 }
 
 function loadHashLibrary() {
@@ -99,14 +139,17 @@ function loadHashLibrary() {
   return hashLibrary;
 }
 
-async function sha256(file) {
+async function sha256(file, startHash) {
   if (file.size <= 100 * MB && window.crypto?.subtle) {
-    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    const data = await file.arrayBuffer();
+    startHash();
+    const digest = await crypto.subtle.digest("SHA-256", data);
     return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
   }
   const library = await loadHashLibrary();
   const hash = await library.createSHA256();
   hash.init();
+  startHash();
   const chunkSize = 8 * MB;
   for (let offset = 0; offset < file.size; offset += chunkSize) {
     hash.update(new Uint8Array(await file.slice(offset, offset + chunkSize).arrayBuffer()));
@@ -138,14 +181,22 @@ async function runScan(file) {
   if (!file || busy) return;
   busy = true;
   browse.disabled = true;
-  byId("open-results").hidden = true;
+  const started = performance.now();
+  byId("scan-size").textContent = fileSize(file.size);
+  updateElapsed(started);
+  const elapsedTimer = setInterval(() => updateElapsed(started), 1000);
   let stage = 0;
   try {
     if (file.size > 650 * MB) throw new Error("Choose a file that is 650 MB or smaller.");
-    setProgress("Fingerprinting file…", file.name, stage);
-    const hash = await sha256(file);
-    stage = 1;
-    setProgress("Checking with VirusTotal…", file.name, stage);
+    setProgress("Reading file", file.name, stage);
+    if (visibleMotion()) await delay(180);
+    const hash = await sha256(file, () => {
+      stage = 1;
+      setProgress("Checking the file hash", file.name, stage);
+    });
+    if (visibleMotion()) await delay(180);
+    stage = 2;
+    setProgress("Checking VirusTotal", file.name, stage);
     let result = await api("/api/lookup/" + hash);
     if (result.status === "unknown") {
       setProgress("Waiting for upload decision", file.name, stage);
@@ -158,7 +209,8 @@ async function runScan(file) {
       form.append("file", file);
       const upload = await api("/api/upload", { method: "POST", body: form });
       if (typeof upload.analysis_id !== "string" || !upload.analysis_id) throw new Error("VirusTotal did not return a scan ID.");
-      setProgress("Waiting for engine verdicts…", file.name, stage);
+      stage = 3;
+      setProgress("Analyzing file", file.name, stage);
       for (let attempt = 0; attempt < 60; attempt++) {
         await delay(3000);
         result = await api("/api/analysis/" + encodeURIComponent(upload.analysis_id));
@@ -167,38 +219,58 @@ async function runScan(file) {
       }
       if (result.status === "pending") throw new Error("The analysis is taking longer than expected. Try a new lookup in a minute.");
     }
-    stage = 2;
     if (result.status !== "done" || !Array.isArray(result.engines)) throw new Error("The server did not return an engine report.");
+    if (stage === 2 && visibleMotion()) await delay(220);
+    stage = 3;
+    setProgress("Finishing up", file.name, stage, "finishing");
+    if (visibleMotion()) {
+      const remaining = minimumPresentation - completionHold - (performance.now() - started);
+      await delay(Math.max(420, remaining));
+    }
+    setProgress("Complete", file.name, stage, "complete");
+    clearInterval(elapsedTimer);
+    updateElapsed(started);
+    if (visibleMotion()) await delay(completionHold);
     renderReport(result, file.name, hash);
-    setProgress("Scan complete", file.name, stage, "complete");
-    byId("open-results").hidden = false;
     if (currentPage === "scan") location.hash = "results";
   } catch (error) {
     setProgress("Scan failed", error.message, stage, "failed");
   } finally {
+    clearInterval(elapsedTimer);
+    if (progress.dataset.state !== "complete") updateElapsed(started);
     busy = false;
     browse.disabled = false;
+    if (progress.dataset.state === "complete") {
+      progress.hidden = true;
+      dropzone.hidden = false;
+    }
   }
 }
 
 browse.addEventListener("click", () => fileInput.click());
+retry.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
   const [file] = fileInput.files;
   fileInput.value = "";
   void runScan(file);
 });
-dropzone.addEventListener("dragover", event => {
+const scanPanel = dropzone.closest(".scan-panel");
+scanPanel.addEventListener("dragover", event => {
   if (!event.dataTransfer.types.includes("Files")) return;
   event.preventDefault();
   event.dataTransfer.dropEffect = busy ? "none" : "copy";
-  if (!busy) dropzone.dataset.dragover = "";
+  if (!busy) (progress.hidden ? dropzone : progress).dataset.dragover = "";
 });
-dropzone.addEventListener("dragleave", event => {
-  if (!dropzone.contains(event.relatedTarget)) delete dropzone.dataset.dragover;
-});
-dropzone.addEventListener("drop", event => {
-  event.preventDefault();
+function clearDrag() {
   delete dropzone.dataset.dragover;
+  delete progress.dataset.dragover;
+}
+scanPanel.addEventListener("dragleave", event => {
+  if (!scanPanel.contains(event.relatedTarget)) clearDrag();
+});
+scanPanel.addEventListener("drop", event => {
+  event.preventDefault();
+  clearDrag();
   void runScan(event.dataTransfer.files[0]);
 });
 

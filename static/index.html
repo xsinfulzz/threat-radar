@@ -49,25 +49,45 @@
           <section class="panel scan-panel" aria-labelledby="intake-heading">
             <header class="panel-header"><h2 id="intake-heading">File scanner</h2><span class="badge">SHA-256</span></header>
             <div class="dropzone" id="dropzone">
-              <span class="file-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
-              <h3>Drop a file here</h3>
+              <span class="file-icon drop-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+              <h3><span class="drop-ready">Drop a file here</span><span class="drop-active">Release to scan</span></h3>
               <p>Select one file up to 650 MB.</p>
               <button class="button primary" id="browse" type="button"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Choose file</button>
-              <input id="file" type="file" hidden>
             </div>
-            <div class="scan-progress" id="progress" hidden>
-              <div class="scan-current" role="status">
-                <span class="phase-dot" aria-hidden="true"></span>
-                <div><h3 id="scan-status"></h3><p id="scan-detail"></p></div>
+            <input id="file" type="file" hidden>
+            <div class="scan-progress" id="progress" role="region" aria-label="File scan" hidden>
+              <svg class="scan-beam" viewBox="0 0 720 320" preserveAspectRatio="none" aria-hidden="true">
+                <rect x="1" y="1" width="718" height="318" rx="10" pathLength="100"/>
+              </svg>
+              <div class="scan-load-inner">
+                <div class="scan-load-header">
+                  <span class="eyebrow">File scan</span>
+                </div>
+                <div class="scan-current" role="status">
+                  <span class="scan-glyph" aria-hidden="true">
+                    <span class="scan-dots"><i></i><i></i><i></i></span>
+                    <svg class="scan-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" pathLength="1"/></svg>
+                    <svg class="scan-stop icon"><use href="#i-x"/></svg>
+                  </span>
+                  <div class="scan-copy"><h3 id="scan-status"></h3><p id="scan-detail"></p></div>
+                </div>
+                <div class="scan-track" id="scan-track" role="progressbar" aria-label="File scan progress"><span></span></div>
+                <ol class="steps" id="steps" aria-label="Scan steps">
+                  <li data-state="pending"><span class="step-marker" aria-hidden="true">1</span><span>Read</span></li>
+                  <li data-state="pending"><span class="step-marker" aria-hidden="true">2</span><span>Hash check</span></li>
+                  <li data-state="pending"><span class="step-marker" aria-hidden="true">3</span><span>Lookup</span></li>
+                  <li data-state="pending"><span class="step-marker" aria-hidden="true">4</span><span>Analyze</span></li>
+                </ol>
+                <div class="scan-facts">
+                  <span id="scan-count">0 of 1 file scanned</span>
+                  <span id="scan-size"></span>
+                  <time id="scan-elapsed" datetime="PT0S">Elapsed 00:00</time>
+                </div>
+                <button class="button scan-retry" id="choose-again" type="button" hidden>Choose file</button>
               </div>
-              <ol class="steps" id="steps" aria-label="Scan steps">
-                <li data-state="pending"><span>1</span>Fingerprint</li>
-                <li data-state="pending"><span>2</span>Check with VirusTotal</li>
-                <li data-state="pending"><span>3</span>Read results</li>
-              </ol>
-              <a class="button" href="#results" data-page="results" id="open-results" hidden>View results<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
             </div>
           </section>
+          <div class="scan-placeholder" id="scan-placeholder" aria-hidden="true" hidden></div>
           <aside class="panel privacy-note">
             <svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>
             <div><h2>Hash lookup first</h2><p>ZeroWare checks the file’s fingerprint first. If VirusTotal needs the file itself, you choose whether to upload it.</p></div>
@@ -86,6 +106,7 @@
             <p>Choose a file in Scan to see its report here.</p>
             <a class="button primary" href="#scan" data-page="scan">Go to Scan<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
           </section>
+          <div class="scan-placeholder" id="results-placeholder" role="status" hidden><span class="sr-only">Scan in progress. Results will appear here.</span></div>
           <div id="report" class="report" hidden>
             <section class="panel verdict" id="verdict" aria-labelledby="verdict-title">
               <header class="verdict-header">
@@ -143,6 +164,14 @@
     <span id="footer-status">Ready</span>
     <span class="status-provider">VirusTotal</span>
   </footer>
+
+  <template id="report-skeleton">
+    <div class="skeleton-report" aria-hidden="true">
+      <div class="panel skeleton-head"><i></i><i></i></div>
+      <div class="panel skeleton-row"><i></i><span><i></i><i></i></span><i></i></div>
+      <div class="panel skeleton-row"><i></i><span><i></i><i></i></span><i></i></div>
+    </div>
+  </template>
 
   <dialog id="upload-dialog" aria-labelledby="upload-title" aria-describedby="upload-description">
     <header class="dialog-header"><h2 id="upload-title">Upload this file?</h2></header>
