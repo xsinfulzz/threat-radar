@@ -66,6 +66,17 @@ themeButton.addEventListener("click", () => {
   try { localStorage.setItem("zeroware-theme", theme); } catch { /* Optional preference. */ }
 });
 
+const motionSelect = byId("motion");
+try {
+  const savedMotion = localStorage.getItem("zeroware-motion");
+  if (savedMotion === "full" || savedMotion === "reduce") motionSelect.value = savedMotion;
+} catch { /* The setting works for this page when storage is unavailable. */ }
+document.documentElement.dataset.motion = motionSelect.value;
+motionSelect.addEventListener("change", () => {
+  document.documentElement.dataset.motion = motionSelect.value;
+  try { localStorage.setItem("zeroware-motion", motionSelect.value); } catch { /* Optional preference. */ }
+});
+
 function setProgress(title, detail, stage, state = "working") {
   const active = state === "working" || state === "finishing";
   const complete = state === "complete";
@@ -113,7 +124,9 @@ function fileSize(bytes) {
 }
 
 function visibleMotion() {
-  return currentPage === "scan" && !document.hidden && !reducedMotion.matches;
+  const mode = document.documentElement.dataset.motion;
+  const motionEnabled = mode === "full" || (mode === "system" && !reducedMotion.matches);
+  return motionEnabled && currentPage === "scan" && !document.hidden;
 }
 
 function loadHashLibrary() {

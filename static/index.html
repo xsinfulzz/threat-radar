@@ -38,7 +38,15 @@
     <div class="workspace">
       <header class="topbar">
         <div class="topbar-path"><span>Workspace</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg><strong id="path-label">Scan</strong></div>
-        <button class="button icon-button" id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        <div class="topbar-actions">
+          <label class="motion-setting" for="motion">Motion</label>
+          <select class="button motion-select" id="motion">
+            <option value="system">System</option>
+            <option value="full">Always on</option>
+            <option value="reduce">Reduced</option>
+          </select>
+          <button class="button icon-button" id="theme" type="button" aria-label="Switch to light theme" title="Switch to light theme"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        </div>
       </header>
       <main class="content" id="workspace" tabindex="-1">
         <section class="view" id="scan" aria-labelledby="scan-heading">

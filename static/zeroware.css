@@ -42,7 +42,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 a { color: inherit; }
-button { font: inherit; }
+button, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; }
 h1, h2, h3, p, dl, dd { margin: 0; }
@@ -128,6 +128,9 @@ code { font-family: var(--mono); overflow-wrap: anywhere; }
 .topbar-path { color: var(--muted); font-size: .8rem; }
 .topbar-path .icon { width: 12px; height: 12px; }
 .topbar-path strong { color: var(--text); }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+.motion-setting { color: var(--muted); font-size: .78rem; }
+.motion-select { padding-inline: 8px; }
 .content { max-width: 1352px; padding: 32px; margin-inline: auto; }
 .view, .report { display: grid; gap: 24px; }
 .view { animation: page-in 230ms var(--ease) both; }
@@ -392,7 +395,16 @@ dialog::backdrop { background: #05080ab8; }
   .report-metadata, .docs-grid { grid-template-columns: 1fr; }
   .statusbar { position: static; padding-inline: 10px; }
 }
+@media (max-width: 380px) {
+  .topbar-path > :not(strong) { display: none; }
+}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after { animation: none !important; transition: none !important; }
+:root[data-motion="reduce"] .scan-beam { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-  .scan-beam { display: none; }
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) *::before,
+  :root:not([data-motion="full"]) *::after { animation: none !important; transition: none !important; }
+  :root:not([data-motion="full"]) .scan-beam { display: none; }
 }
